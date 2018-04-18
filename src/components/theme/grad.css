@@ -1,0 +1,55 @@
+.sy-grad-box {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.sy-grad-box>div {
+    position: absolute;
+}
+
+.sy-grad-box>div.sy-header-left,
+.sy-grad-box>div.sy-header-right {
+    box-sizing: border-box;
+    padding: 0 10px;
+    background-color: #FBFCFC;
+    color: #666;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.sy-grad-box>div.sy-header-left {
+    height: 40px;
+    top: 0;
+    left: 0;
+}
+
+.sy-grad-box>div.sy-header-right {
+    top: 0;
+    right: 0;
+}
+
+.sy-grad-box>div.sy-body-left,
+.sy-grad-box>div.sy-body-right {
+    box-sizing: border-box;
+}
+
+.sy-grad-box>div.sy-body-left {
+    left: 0;
+    bottom: 0;
+    overflow: auto;
+}
+
+.sy-grad-box>div.sy-body-right {
+    right: 0;
+    bottom: 0;
+    background-color: #FBFCFC;
+}
+
+.sy-grad-box>div.sy-footer {
+    height: 40px;
+    bottom: 0;
+    width: 100%;
+    padding: 0 10px;
+    background-color: #FBFCFC;
+}

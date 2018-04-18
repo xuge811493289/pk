@@ -1,0 +1,213 @@
+import request from '@/api';
+import _ from 'lodash';
+import { Notification } from 'element-ui';
+import store from '@/vuex/store.js';
+let unitId = store.state.unitId;
+
+export let currentUnitId = unitId;
+
+// 上传文件地址
+export let uploadUrl = window.ShiYue.base + '/zuul/api/storage/upload';
+
+// 显示上传文件地址
+export let showAllUrl = window.ShiYue.base + '/api/storage/show/all?fileId=';
+
+// 下载上传文件
+export let downloadUrl = '/api/storage/download/';
+
+// 下载成绩录入模板
+export let downLoadImportUrl = '/api/sc/score/excel_download/class';
+
+// 后台 ----------------------------------------------------------------------------------------------
+export let getBankStage = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/lib/lib_topic/bank_stage',obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+//年级 课程
+export let getGradeCourse = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/base/lib/grade_course_role').then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+//知识点
+export let getKnowpointList = (obj) => {
+    // console.log("kpoinnnnnnnt",obj);
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/base/knowpoint/find/tree', obj).then((data) => {
+            // console.log("dsdsfssf",data)
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+//删除题目
+export let deleteSubject = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('post', '/api/lib/topic/delete_topic', {id:obj}).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+//审核通过
+export let passSubject = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('put', '/api/lib/topic/passed_examination', {id:obj}).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+//审核不通过
+export let notpassSubject = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('put', '/api/lib/topic/passed_not_examination', {id:obj}).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+// 查询学科下拉
+export let getBaseCourse = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/base/rc/course', obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+// 查询年级下拉
+export let getBaseGrade = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/base/nologin/grade',{unitId}, obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+
+//按年级
+export let getStatisticsByGrade = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/lib/topic/discipline/statistics', obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+//按学科
+export let getStatisticsByObject = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/lib/topic/grade/statistics', obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+//按题型
+export let getStatisticsByType = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/lib/topic/statistics', obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        })
+    })
+    return result;
+}
+//------------------------------------------------------------------------------------------------
+//根据id获取题库题目
+export let getTopicById = (id) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/lib/lib_topic/by_topic_id/' + id).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        }).catch(err => { })
+    })
+    return result;
+}
+//获取编目
+export let getCatelog = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/base/lib/catalog/list', obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        }).catch(err => { })
+    })
+    return result;
+}
+//获取年份
+export let getYear = (obj) => {
+    let result = new Promise((resolve, reject) => {
+        request('get', '/api/lib/nologin/get_year', obj).then((data) => {
+            if (data && data.status == 200 && data.code == 'ok') {
+                resolve(data.data)
+            } else {
+                reject(data.fieldErrors)
+            }
+        }).catch(err => { })
+    })
+    return result;
+}

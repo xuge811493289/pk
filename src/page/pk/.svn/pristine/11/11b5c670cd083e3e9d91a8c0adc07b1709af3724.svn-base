@@ -1,0 +1,41 @@
+import request from '../../../../../../api';
+
+// 初始化
+export let initData = (params) =>{
+	return request('post','/api/pk/continuity/init_continuity',params);
+}
+
+
+// 基础设置中课程时间段
+export let baseCourseTime = (params) =>{
+	return request('get','/api/base/festival',params);
+}
+
+// 查询基础设置连堂节次
+export let selectContinuityFestival = (params) => {
+    return request('get', '/api/pk/continuity/select_base_continuity_festival',params);
+};
+// 根据方案获取年级
+export let getGradeList = (params) => {
+    return request('get', '/api/pk/solution/select_pk_grade_by_solution_and_type?solutionId='+params.solutionId+'&type=all');
+};
+
+// 设置连堂模式(基础和高级)
+export let setContinuity = (params) =>{
+	return request('post','/api/pk/continuity/continuity_type_set',params);
+}
+// 保存基础连堂模式
+export let saveContinuityFestival = (params) =>{
+	return request('post','/api/pk/continuity/save_base_continuity_festival',params);
+}
+// 查询高级连堂
+export let seniorContinuity = (params) =>{
+	return request('get','/api/pk/continuity/select_senior_continuity_festival',params);
+}
+// 和修改高级设置数据
+export let saveSeniorData = (params) =>{
+	return request('post','/api/pk/continuity/save_senior_continuity_festival',params);
+}
+
+
+

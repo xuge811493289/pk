@@ -1,0 +1,149 @@
+<template>
+	<div class="others_rightContent">
+	  <ul class="options">
+	    <li>
+	      <el-select v-model="gradeValue" placeholder="请选择" @change="selectGrade">
+	        <el-option v-for="item in grades" :key="item.gradeId" :label="item.gradeName" :value="item.gradeId"></el-option>
+	      </el-select>
+	    </li>
+	    <li>
+	      <el-select v-model="courseValue" placeholder="请选择" @change="selectCourse">
+	        <el-option v-for="item in pkCourseVMS" :key="item.courseId" :label="item.courseName" :value="item.courseId"></el-option>
+	      </el-select>
+	    </li>
+	    <li>连上限制</li>
+	  </ul>
+	  <div class="tblData">	    
+	    <el-table :data="tableData" border style="width: 100%"> 
+	      <el-table-column prop="courseName" label="课程" align="center" width="150"></el-table-column>
+	      <el-table-column prop="teacherName" label="老师" align="center" width="150"></el-table-column>
+	      <el-table-column label="一天最长连上节数" align="center">
+	        <template scope="scope">
+	        	<el-radio-group v-model="scope.row.continuedNum" @change.native="changeImportance(scope.row)" >
+	        		<el-radio :label="3">连上3节</el-radio>
+		        	<el-radio :label="4">连上4节</el-radio>
+		        </el-radio-group>
+	        </template>
+	      </el-table-column>
+	      <el-table-column label="重要程度" align="center">
+	        <template scope="scope">
+	        	<el-radio-group v-model="scope.row.importance" @change.native="changeImportance(scope.row)">
+	        		<el-radio :label="1">特别重要</el-radio>
+		        	<el-radio :label="2">相对重要</el-radio>
+		        	<el-radio :label="3">一般</el-radio>
+		        </el-radio-group>
+	        </template>
+	      </el-table-column>
+	    </el-table>
+	  </div>
+	</div>
+</template>
+<script>
+	import {getGradeListandCourse,otherData,saveAndEditRule} from '../request'
+	export default{
+		data(){
+			return {
+				solutionId:'',
+				grades:[],
+				gradeValue:'',
+				pkCourseVMS:[],
+				courseValue:'',
+				saveParams:{
+					gradeId:'',
+					courseId:'',
+					type:'',
+				},
+				tableData:[],
+			}
+		},
+		created(){
+			this._getSession()
+			getGradeListandCourse({solutionId:this.solutionId}).then((results)=>{
+				if(results && results.code =='ok'){
+					this.grades = results.data;
+				}
+			})
+		},
+		methods:{
+			_getSession() {
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+			selectGrade(gradeId){
+				this.saveParams.gradeId = gradeId;
+				this.pkCourseVMS = [];
+				this.tableData = [];
+				this.courseValue = '';
+				this.grades.forEach((item,index)=>{
+					if(gradeId == item.gradeId){
+						this.pkCourseVMS = item.pkCourseVMS;
+					}
+				})
+			},
+			// 获取表格数据
+			selectCourse(courseId){
+				this.saveParams.courseId = courseId;
+				let path = this.$route.path.split('/');
+				if(path[path.length-1] == 'consecutive'){
+					this.saveParams.type = '2';
+				}
+				let param = {
+					solutionId:this.solutionId,
+					gradeId:this.saveParams.gradeId,
+					courseId:this.saveParams.courseId,
+					ruleOtherType:this.saveParams.type
+				}
+				if(param.courseId){
+					otherData(param).then((results)=>{
+						if(results && results.code =='ok'){
+							this.tableData = results.data;
+						}
+					})
+				}
+			},
+			changeImportance(row){
+				let params = {
+					solutionId:this.solutionId,
+					gradeId:this.saveParams.gradeId,
+					courseId:row.courseId,
+					type:this.saveParams.type,
+					clazzCourseTeacherRId:row.clazzCourseTeacherRId,
+					importance:row.importance,
+					continuedNum:row.continuedNum,
+				}
+				saveAndEditRule(params).then((results)=>{
+					if(results && results.code =='ok'){
+						this.$notify({title:'成功', type:'success', message:'设置成功'})
+					}
+				})
+			}
+		}
+	}
+
+</script>
+<style scoped>
+  /*右侧*/
+  .others_rightContent{
+    padding: 10px;
+  }
+  .others_rightContent .options:after{
+    content: "";
+    display: block;
+    clear: both;
+  }
+  .others_rightContent .options li{
+    float: left;
+    height: 46px;
+    line-height: 46px;
+    margin-right:10px;
+  }
+ 	.others_rightContent .options li:first-child{
+    width: 8em;
+  }
+  .others_rightContent .options li:nth-child(2){
+    width: 8em;
+  }
+  
+</style>

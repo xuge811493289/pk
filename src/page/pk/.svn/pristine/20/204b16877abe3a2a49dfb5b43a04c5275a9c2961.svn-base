@@ -1,0 +1,219 @@
+<template>
+  <sy-grad-4 v-loading="loading" element-loading-text="正在导入...">
+    <div slot="bodyRight">
+      <div class="sy-up">
+        <span class="sy-row" gutter="5px">
+          <span class="sy-col1 sy-10">
+            <div style="display:inline-block; width:100%; text-align: right">
+              <el-button style="margin:5px; float:right" @click="v_back">返回</el-button>
+                <el-button class="button" @click="download">{{$t('button.downloadImportTemplate')}}</el-button>
+            </div>
+          </span>
+        </span>
+      </div>
+      <div class="sy-import sy-down">
+        <div class="sy-import-title">导入文件：</div>
+        <el-upload
+          ref="upload"
+          :action="action"
+          :on-change="onChange"
+          :show-file-list="false"
+          :data="data"
+          :before-upload="handleBeforeUpload"
+          :on-success="onSuccess"
+          :file-list="fileList"
+          :auto-upload="false">
+          <div slot="trigger" class="sy-import-file-name el-input__inner">
+            <div class="sy-import-file-name-div" ref="img">{{uploadValue}}</div>
+            <span class="fa fa-folder-o"></span>
+          </div>
+          <el-button class="sy-import-button" size="small" @click="submitUpload">导入</el-button>
+        </el-upload>
+
+        <div class="sy-import-title" style="margin-top: 15px;" v-if="importMsg && importMsg.length > 0">导入日志：</div>
+        <div class="sy-import-msg" v-if="importMsg && importMsg.length > 0">
+          <div v-for="(o, index) in importMsg" :key="index" class="sy-import-msg-div">
+            <span :class="'fa ' + o.type"></span>
+            <span v-if="!o.success" style="color:#ff4949">{{o.msg}}</span>
+            <span v-else style="color:#13CE66">{{o.msg}}</span>
+          </div>
+        </div>
+
+        <div class="sy-import-title" style="margin-top: 15px;">导入提示：</div>
+        <div class="sy-import-info">
+          <div class="sy-import-info-node"><span class="fa"></span>Excel导入格式如下</div>
+          <el-table :data="tableData" border style="width: 100%">
+            <el-table-column prop="a1" label=""></el-table-column>
+            <el-table-column prop="a2" label="年级课时"></el-table-column>
+            <el-table-column prop="a3" label="高一1班"></el-table-column>
+            <el-table-column prop="a4" label="高一2班"></el-table-column>
+            <el-table-column prop="a5" label="高一3班"></el-table-column>
+          </el-table>
+          <div class="sy-import-info-node">
+            <p>导入步骤：</p>
+            <p><span class="fa"></span>1.导出模板。</p>
+            <p><span class="fa"></span>2.将对应的数据填入对应的地址。</p>
+            <p><span class="fa"></span>3.选择文件并导入。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sy-grad-4>
+</template>
+<script>
+  import config from './config.js';
+  export default {
+    name: 'electiveClass',
+    data(){
+      return {
+        a: false,
+        valueYear: '',
+        data: {
+          unitId: ''
+        },
+        valueTerm: '',
+        years: [],
+        terms: [],
+        tableData: [{
+          a1: '语文',
+          a2: '5(1个2节连堂)',
+          a3: '张三+李四5(1个2节连堂)',
+          a4: '张三+李四5(1个2节连堂)',
+          a5: '张三+李四5(1个2节连堂)'
+        }, {
+          a1: '数学',
+          a2: '',
+          a3: '张三+李四5(1个2节连堂)',
+          a4: '张三+李四5(1个2节连堂)',
+          a5: '张三+李四5(1个2节连堂)'
+        }, {
+          a1: '体育',
+          a2: '',
+          a3: '张三+李四5(1个2节连堂)',
+          a4: '张三+李四5(1个2节连堂)',
+          a5: '张三+李四5(1个2节连堂)'
+        } ],
+        uploadValue: '',
+        fileList: [],
+        importController: false,
+        currentUnitId: '',
+        importMsg: [],
+        loading: false,
+        action: config.import,
+        solutionId:'',
+      }
+    },
+    beforeCreate(){
+      console.log(config);
+    },
+    created(){
+      this._getSession();
+    },
+    methods: {
+      _getSession() {
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+      //返回
+      v_back(){
+        this.$router.push({name: 'adminCourse', params: this.$route.params})
+      },
+      // 下载批量导入模板
+      download(){
+        let url = `/api/pk/pk_pkteach/download`
+        let param = {gradeId:window.sessionStorage.getItem("gradeId"),solutionId:this.solutionId};
+        this.$downloade(url, 'POST', param);
+      },
+      selectionChange(){
+        this.getTerms(this.valueYear);
+      },
+      submitUpload() {
+        if (!this.uploadValue) {
+            this.$notify({
+                title: '提示',
+                message: '请选择文件后导入！',
+                type: 'warning'
+            });
+            return false;
+        }
+        this.data.gradeId = this.$route.params.gradeId;
+        this.data.solutionId = this.$route.params.solutionId;
+        this.$refs.upload.submit();
+      },
+      // 上传文件改变函数
+      onChange(file, fileList){
+        this.uploadValue = file.name;
+      },
+      // 上传之前回调函数
+      handleBeforeUpload(){
+        this.importMsg = [];
+        this.loading = true;
+      },
+      // 上传成功
+      onSuccess(response, file, fileList){
+        setTimeout(() => {
+          this.uploadValue = '';
+        }, 100);
+        if (response.code !== 'ok') {
+          this.$notify({
+            title: '失败',
+            message: response.message,
+            type: 'error'
+          });
+          this.loading = false;
+          return;
+        }
+        let arr = [];
+        if (response && response.data) {
+          if(!response.data.error||response.data.error.length==0){
+            this.$notify({
+              title: '成功',
+              message: '导入成功！',
+              type: 'success'
+            });
+          }else if(!response.data.success||response.data.success.length==0){
+            this.$notify({
+              title: '失败',
+              message: '导入失败！',
+              type: 'error'
+            });
+          } else {
+            this.$notify({
+              title: '警告',
+              message: '导入数据部分有误！',
+              type: 'warning'
+            });
+          }
+          if(response.data.error)
+          response.data.error.forEach((_res, i) => {
+            arr.push({
+              msg: _res,
+              success: false
+            })
+          });
+          if(response.data.success)
+          response.data.success.forEach((_res, i) => {
+            arr.push({
+              msg: _res,
+              success: true
+            })
+          });
+        } else {
+          arr = [];
+        }
+        this.importMsg = arr;
+        this.loading = false;
+      }
+    }
+  }
+</script>
+<style scoped>
+  .sy-col1 {
+    float: right;
+    vertical-align: top;
+    box-sizing: border-box;
+    margin: 0;
+  }
+</style>

@@ -1,0 +1,20 @@
+:root {
+    /*主色调*/
+    --parmary-color: #49c1db;
+    --parmary-hover-color: #49c1db;
+    --parmary-active-color: #49c1db;
+    /*表格中按钮*/
+    --table-edit-btn-color: #49c1db;
+    --table-delete-btn-color: #ff4949;
+    /*背景色*/
+    --background-color: #FBFCFC;
+    /*加粗标题文本颜色*/
+    --bold-title-text-color: #666;
+    /*左侧栏目颜色*/
+    --left-menu-text-color: #276C5D;
+    --left-menu-icon-color: #69978D;
+    --left-menu-bacground-hover-color: #d1dbe5;
+    --left-menu-border-bottom-active-color: #276C5D;
+    --left-menu-border-bottom-color: #DDE3E3;
+    --left-menu-right-icon-color: #BBBBBB;
+}

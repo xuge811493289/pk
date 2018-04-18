@@ -1,0 +1,639 @@
+<template>
+	<div :class="{'sy-pk-optimeize_absolute': !isfullscreen,'sy-pk-optimeize_fixed': isfullscreen}">
+		<div class="sy-pk-optimeize_head">
+			<el-button>撤销</el-button> 
+			<el-button>恢复</el-button>
+			<el-button>保存</el-button>
+		</div>
+		<div class="sy-pk-step-optimeize_absolute sy-theme-tableBorder">
+			<el-row class="sy-pk-optimeize_body">
+				<el-col class="sy-pk-optimeize-col" :span="4">
+					<h3>待处理作务<span style="color: #FF4949"> ( {{number}} ) </span></h3>
+					<el-select v-model="optimizeTypoeId" style="width: 100%;" placeholder="班级" >
+						<el-option v-for="item in optimizeTypoeOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+					</el-select>
+					<div class="sy-pk-optimeize-tree-box sy-pk_bg_fff" v-if="optimizeTypoeId == '1' || optimizeTypoeId == '2' || optimizeTypoeId == '3'">
+						<div class="sy-pk-optimeize-tree_head">
+							<el-input placeholder="关键字" icon="search" v-model="keyWords" :on-icon-click="handleIconClick"></el-input>
+						</div>
+						<div class="sy-pk-optimeize-tree_body">
+							<el-tree :data="classTreeData" style="border:0;" :render-content="renderContent" :default-expanded-keys="[1]" node-key="id" ref="tree"
+								highlight-current :props="defaultProps">
+							</el-tree>
+						</div>
+					</div>
+				</el-col>
+				<!-- 班级  教师  场地  -->
+
+				<el-col :span="20" v-if="optimizeTypoeId == '1' || optimizeTypoeId == '2' || optimizeTypoeId == '3'">
+					<el-row>
+						<el-col class="sy-pk-optimeize-col" :span="showDargTeacherList ? 14 : 24">
+							<el-row>
+								<el-col :span="4">
+									<h3>课表</h3>
+								</el-col>
+								<el-col :span="20" class="right" style="line-height: 40px;padding-right: 10px;">
+									<el-checkbox-group v-model="checkList.class.checked" style="display: inline-block;padding-right: 10px;">
+										<el-checkbox label="teacher">教师</el-checkbox>
+										<el-checkbox label="address">场地</el-checkbox>
+									</el-checkbox-group>
+									<el-radio v-model="checkList.class.radio" label="all">课程全称</el-radio>
+									<el-radio v-model="checkList.class.radio" label="short">课程简称</el-radio>
+									<el-button style="margin-left: 20px;" type="text" @click="handleFullScren">
+										<i v-show="!isfullscreen" title="全屏" class="fa fa-arrows-alt"></i>
+										<i v-show="isfullscreen" title="取消全屏" class="fa fa-minus-square-o" aria-hidden="true"></i>
+									</el-button>
+								</el-col>
+							</el-row>
+							<table class="sy-base-table-border">
+								<thead>
+									<tr>
+										<th>{{classMsg.name}}</th>
+										<th v-for="(item,index) in columesList" :key="item.id">{{item.name}}</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr class="clazz_row" v-for="(item,index) in tableData" :key="index">
+										<td style="background-color: #fff">{{item.number}}</td>
+										<td v-for="(key,i) in columesList" :key="key.id" 
+											:style="{'background-color': item[key.id+'_status'] == 2 ? '#FE0000' : item[key.id+'_status'] == 3 ? '#9700FD' : '#fff'}"
+											@click="handleClick(item, key)"
+											v-on:mouseenter="mounseOver(item, key, index)" v-on:mouseleave="mounseLeave(item, key, index)"
+											:class="{selected: item[key.id+'_selected']}">
+											{{item[key.id]}}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</el-col>
+						<el-col class="sy-pk-optimeize-col" v-show="showDargTeacherList" :span="10">
+							<h3>张三老师课表<span style="color: #FF4949"> ( 调课老师课表 ) </span></h3>
+							<table class="sy-base-table-border">
+								<thead>
+									<tr>
+										<th></th>
+										<th v-for="(item,index) in columesList" :key="item.id">{{item.name}}</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr class="clazz_row" v-for="(item,index) in moveTeacherList" :key="index">
+										<td>{{item.number}}</td>
+										<td v-for="(key,i) in columesList" :key="key.id">
+											{{item[key.id]}}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</el-col>
+					</el-row>
+					<el-row>
+						<el-col class="sy-pk-optimeize-col" :span="showDargTeacherList ? 14 : 24">
+							<el-row style="padding-top: 10px;" :gutter="10">
+								<el-col :span="12">
+									<div>
+										<div style="background: #FE9AFD;color: #fff;line-height: 37px;text-align:center;">待排</div>
+										<ul class="no_teacher_ul sy-theme-tableBorder">
+											<li class="sy-theme-tableBorder" v-for="(c,i) in noTeacherList" :key="i">{{c.name}}</li>
+										</ul>
+									</div>
+								</el-col>
+								<el-col :span="12">
+									<table class="sy-base-table-border">
+										<thead>
+											<tr>
+												<th :colspan="3" style="background: #FF4949;color: #fff;">冲突详情</th>
+											</tr>
+											<tr>
+												<th>来源</th>
+												<th>值</th>
+												<th>名称</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr class="clazz_row" v-for="(item,index) in ignoreList" :key="index">
+												<td>{{item.res}}</td>
+												<td :style="{'background': statusColor[item.value].color}">{{statusColor[item.value].text}}</td>
+												<td>{{item.name}}</td>
+											</tr>
+										</tbody>
+									</table>
+								</el-col>
+							</el-row>
+						</el-col>
+						<el-col class="sy-pk-optimeize-col" v-show="showDargTeacherList && showNoTeacherList" :span="10">
+							<h3>李四老师课表<span style="color: #FF4949"> ( 被调课老师课表 ) </span></h3>
+							<table class="sy-base-table-border">
+								<thead>
+									<tr>
+										<th></th>
+										<th v-for="(item,index) in columesList" :key="item.id">{{item.name}}</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr class="clazz_row" v-for="(item,index) in dragTeacherList" :key="index">
+										<td>{{item.number}}</td>
+										<td v-for="(key,i) in columesList" :key="key.id">
+											{{item[key.id]}}
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</el-col>
+					</el-row>
+				</el-col>
+
+				<!-- 教师总课表 -->
+				<el-col :span="20" style="padding: 40px 10px 0px;" v-if="optimizeTypoeId == '4' || optimizeTypoeId == '4'">
+					<el-row>
+						<el-col :span="16">
+							<el-select v-model="gradeId" style="width: 130px;" placeholder="班级" >
+								<el-option v-for="item in optimizeTypoeOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+							</el-select>
+						</el-col>
+						<el-col :span="8" class="right">
+							<el-checkbox-group v-model="checkList.teacher.checked" style="display:inline-block;">
+								<el-checkbox label="1">课程简称</el-checkbox>
+								<el-checkbox label="2">班级</el-checkbox>
+							</el-checkbox-group>
+							<el-button style="margin-left: 20px;" type="text" @click="handleFullScren">
+								<i v-show="!isfullscreen" title="全屏" class="fa fa-arrows-alt"></i>
+								<i v-show="isfullscreen" title="取消全屏" class="fa fa-minus-square-o" aria-hidden="true"></i>
+							</el-button>
+						</el-col>
+					</el-row>
+
+				</el-col>
+				<el-col :span="24" style="padding: 10px;" v-if="optimizeTypoeId == '4'">
+					<table class="sy-base-table-border hover">
+						<thead>
+							<tr>
+								<th>时间</th>
+								<th>课节</th>
+								<th v-for="(item, index) in teacherList" :key="'t_'+index">{{item.name}}</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td></td>
+							</tr>
+						</tbody>
+					</table>
+				</el-col>
+			</el-row>
+		</div>
+		<div class="center" style="padding: 10px;">
+			<el-button type="primary" @click="prev">上一步</el-button>
+			<el-button type="primary" @click="next">下一步</el-button>
+		</div>
+	</div>
+	
+</template>
+<script type="text/javascript">
+import screenfull from 'screenfull';
+export default {
+  data() {
+    return {
+		teacherList: [
+			{id: '1',name: '张三'},{id: '1',name: '李四'},{id: '1',name: '小三'},{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'},
+			{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'},{id: '1',name: '张三'}
+		],
+		gradeId: "", // 教师总课表 年级下拉
+		optimizeTypoeId: "1",
+		optimizeTypoeOptions: [
+			// 调课类型
+			{ label: "按班级调课", value: "1" },
+			{ label: "按教师调课", value: "2" },
+			{ label: "按场地调课", value: "3" },
+			{ label: "按教师总课表调课", value: "4" },
+			{ label: "按班级总课表调课", value: "5" }
+		],
+		classMsg: {
+			name: "高二（1）班"
+		},
+		classOptions: [
+			{ value: "1", label: "1班" },
+			{ value: "2", label: "2班" },
+			{ value: "3", label: "3班" },
+			{ value: "4", label: "4班" }
+		],
+		defaultProps: {
+			children: "children",
+			label: "label"
+		},
+		classId: "",
+		keyWords: "",
+		number: 123, // 待处理作务
+		classTreeData: [
+			{
+			id: 1,
+			label: "初中一年级",
+			children: [
+				{ id: 2, label: "初中一年级1班", children: [] },
+				{ id: 2, label: "初中一年级1班", children: [] },
+				{ id: 3, label: "初中一年级2班", children: [] },
+				{ id: 3, label: "初中一年级2班", children: [] },
+				{ id: 4, label: "初中一年级3班", children: [] },
+				{ id: 3, label: "初中一年级2班", children: [] },
+				{ id: 4, label: "初中一年级3班", children: [] },
+				{ id: 5, label: "初中一年级4班", children: [] }
+			]
+			},
+			{
+			id: 8,
+			label: "初中二年级",
+			children: [
+				{ id: 2, label: "初中一年级1班", children: [] },
+				{ id: 3, label: "初中一年级2班", children: [] },
+				{ id: 4, label: "初中一年级3班", children: [] },
+				{ id: 5, label: "初中一年级4班", children: [] }
+			]
+			}
+		],
+		checkList: {
+			// 复选组
+			class: {
+				checked: [],
+				radio: "short"
+			},
+			teacher: {
+				checked: ['1','2']
+			}
+		},
+		columesList: [
+			{ id: "mon", name: "星期一" },
+			{ id: "tue", name: "星期二" },
+			{ id: "wed", name: "星期三" },
+			{ id: "thurs", name: "星期四" },
+			{ id: "fri", name: "星期五" }
+		],
+		tableData: [
+			//
+			{
+				id: "1",
+				number: 1,
+				mon: "",
+				tue: "",
+				wed: "",
+				thurs: "",
+				fri: "",
+				mon_selected: false, // 单击选中
+				tue_selected: false,
+				wed_selected: false,
+				thurs_selected: false,
+				fri_selected: false,
+				mon_status: 1, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+				tue_status: 1,
+				wed_status: 1,
+				thurs_status: 1,
+				fri_status: 1,
+				mon_change: false, // 是否可以直接调整
+				tue_change: false,
+				wed_change: false,
+				thurs_change: false,
+				fri_change: false
+			},
+			{
+			id: "2",
+			number: 2,
+			mon: "",
+			tue: "",
+			wed: "",
+			thurs: "",
+			fri: "",
+			mon_selected: false, // 单击选中
+			tue_selected: false,
+			wed_selected: false,
+			thurs_selected: false,
+			fri_selected: false,
+			mon_status: 1, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+			tue_status: 1,
+			wed_status: 1,
+			thurs_status: 1,
+			fri_status: 1,
+			mon_change: false, // 是否可以直接调整
+			tue_change: false,
+			wed_change: false,
+			thurs_change: false,
+			fri_change: false
+			},
+			{
+			id: "3",
+			number: 3,
+			mon: "",
+			tue: "",
+			wed: "",
+			thurs: "",
+			fri: "",
+			mon_selected: false, // 单击选中
+			tue_selected: false,
+			wed_selected: false,
+			thurs_selected: false,
+			fri_selected: false,
+			mon_status: 2, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+			tue_status: 1,
+			wed_status: 1,
+			thurs_status: 1,
+			fri_status: 1,
+			mon_change: false, // 是否可以直接调整
+			tue_change: false,
+			wed_change: false,
+			thurs_change: false,
+			fri_change: false
+			},
+			{
+			id: "4",
+			number: 4,
+			mon: "",
+			tue: "",
+			wed: "",
+			thurs: "",
+			fri: "",
+			mon_selected: false, // 单击选中
+			tue_selected: false,
+			wed_selected: false,
+			thurs_selected: false,
+			fri_selected: false,
+			mon_status: 1, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+			tue_status: 1,
+			wed_status: 1,
+			thurs_status: 1,
+			fri_status: 1,
+			mon_change: false, // 是否可以直接调整
+			tue_change: false,
+			wed_change: false,
+			thurs_change: false,
+			fri_change: false
+			},
+			{
+			id: "5",
+			number: 5,
+			mon: "",
+			tue: "",
+			wed: "",
+			thurs: "",
+			fri: "",
+			mon_selected: false, // 单击选中
+			tue_selected: false,
+			wed_selected: false,
+			thurs_selected: false,
+			fri_selected: false,
+			mon_status: 1, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+			tue_status: 1,
+			wed_status: 1,
+			thurs_status: 1,
+			fri_status: 1,
+			mon_change: false, // 是否可以直接调整
+			tue_change: false,
+			wed_change: false,
+			thurs_change: false,
+			fri_change: false
+			},
+			{
+			id: "6",
+			number: 6,
+			mon: "",
+			tue: "",
+			wed: "",
+			thurs: "",
+			fri: "",
+			mon_selected: false, // 单击选中
+			tue_selected: false,
+			wed_selected: false,
+			thurs_selected: false,
+			fri_selected: false,
+			mon_status: 1, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+			tue_status: 3,
+			wed_status: 1,
+			thurs_status: 1,
+			fri_status: 1,
+			mon_change: false, // 是否可以直接调整
+			tue_change: false,
+			wed_change: false,
+			thurs_change: false,
+			fri_change: false
+			},
+			{
+			id: "7",
+			number: 7,
+			mon: "",
+			tue: "",
+			wed: "",
+			thurs: "",
+			fri: "",
+			mon_selected: false, // 单击选中
+			tue_selected: false,
+			wed_selected: false,
+			thurs_selected: false,
+			fri_selected: false,
+			mon_status: 1, // 1 正常  2 不能调换  3 通过调整第三节课才能调整
+			tue_status: 1,
+			wed_status: 1,
+			thurs_status: 1,
+			fri_status: 1,
+			mon_change: false, // 是否可以直接调整
+			tue_change: false,
+			wed_change: false,
+			thurs_change: false,
+			fri_change: false
+			}
+		],
+		moveTeacherList: [
+			// 调课老师课表
+			{ number: 1, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 2, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 3, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 4, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 5, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 6, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 7, mon: "", tue: "", wed: "", thurs: "", fri: "" }
+		],
+		dragTeacherList: [
+			// 被调课老师课表
+			{ number: 1, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 2, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 3, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 4, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 5, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 6, mon: "", tue: "", wed: "", thurs: "", fri: "" },
+			{ number: 7, mon: "", tue: "", wed: "", thurs: "", fri: "" }
+		],
+		showDargTeacherList: false, // 是否显示 被调课老师课表
+		noTeacherList: [
+			// 待排老师列表
+			{ id: "1", name: "教师1" },
+			{ id: "1", name: "教师2" },
+			{ id: "1", name: "教师3" },
+			{ id: "1", name: "教师4" },
+			{ id: "1", name: "教师5" },
+			{ id: "1", name: "教师6" }
+		],
+		showNoTeacherList: false, // 是否显示 待排老师列表
+		// 1 独占元素冲突 2 不排 3 较好
+		statusColor: {
+			"1": { text: "独占元素冲突", color: "#FDC101" },
+			"2": { text: "不排", color: "#FE0000" },
+			"3": { text: "较好", color: "#2FD6CE" }
+		},
+		ignoreList: [
+			// 冲突详情
+			{ res: "冲突", value: "1", name: "高一（1）班" },
+			{ res: "科目组规则", value: "2", name: "语文" },
+			{ res: "教师规则", value: "2", name: "数学" },
+			{ res: "班级规则", value: "2", name: "高一（1）班" },
+			{ res: "科目规则", value: "3", name: "物理" }
+		],
+		isfullscreen: false, // 是否全屏
+    };
+  },
+  methods: {
+		// 点击课程
+		handleClick(row, key) {
+			// console.log(row,key);
+			// 显示被调老师课表
+			this.showDargTeacherList = !this.showDargTeacherList;
+			row[key.id + "_selected"] = row[key.id + "_selected"] ? false : true;
+		},
+		// 鼠标进入
+		mounseOver(row, key, index) {},
+		// 鼠标移出
+		mounseLeave(row, key, index) {},
+		handleIconClick() {},
+		handleFullScren(){
+			if (!screenfull.enabled) {
+				this.$message({
+					message: 'you browser can not work',
+					type: 'warning'
+				})
+				return false
+			}
+			this.isfullscreen = !this.isfullscreen;
+			screenfull.toggle()
+		},
+		renderContent(h, { node, data, store }) {
+			// console.log(node);
+			return (
+				<span>
+					<span>
+						<i
+						style={{
+							display: node.childNodes.length == 0 ? "none" : "",
+							fontSize: "16px",
+							position: "relative",
+							top: "2px"
+						}}
+						class={{
+							fa: true,
+							"fa-folder-o": !node.expanded,
+							"fa-folder-open-o": node.expanded
+						}}
+						aria-hidden="true"
+						/>
+						<i style={{
+							display: node.childNodes.length != 0 ? "none" : "",
+							fontSize: "16px",
+							position: "relative",
+							top: "2px"
+						}}
+						class="fa fa-file-text-o"
+						aria-hidden="true"
+						/>
+						<span> {node.label}</span>
+					</span>
+				</span>
+			);
+		}
+  }
+};
+</script>
+<style>
+.sy-pk_border {
+  border: 1px solid #ccc;
+}
+.sy-pk_bg_fff {
+  background-color: #fff;
+}
+.sy-pk_noborder {
+  line-height: 42px;
+}
+.sy-pk-step-optimeize_absolute{
+	width: 96%;
+	margin: 0 auto;
+	padding-bottom: 10px;
+	border: 1px solid #ccc;
+}
+.sy-pk-optimeize_absolute {
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 20px;
+}
+.sy-pk-optimeize_fixed{
+	position: fixed;
+	top: 0;
+	width: 100%;
+  	box-sizing: border-box;
+	bottom: 0px;
+	background-color: #fafcfb;
+	z-index: 1000;
+}
+.sy-pk-optimeize_head {
+  text-align: center;
+  height: 48px;
+  line-height: 48px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+.sy-pk-optimeize_body {
+  box-sizing: border-box;
+}
+.sy-pk-optimeize div {
+  box-sizing: border-box;
+}
+.sy-pk-optimeize-col {
+  position: relative;
+  height: 100%;
+  padding: 0 10px;
+  box-sizing: border-box;
+}
+.sy-pk-optimeize-col h3 {
+  margin: 0;
+  height: 40px;
+  line-height: 40px;
+}
+.sy-pk-optimeize-col .sy-pk-optimeize-tree-box {
+  border: 1px solid #ccc;
+  margin-top: 10px;
+}
+.sy-pk-optimeize-tree_head {
+  margin: 0;
+  line-height: 40px;
+  padding: 0 10px;
+}
+.sy-pk-optimeize-tree_body {
+  width: 100%;
+  overflow-y: auto;
+  height: 450px;
+}
+tr.clazz_row > td {
+  cursor: pointer;
+}
+tr.clazz_row > td.selected {
+  background-color: #fdc101 !important;
+}
+ul.no_teacher_ul {
+  overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
+  border-top: 1px solid #ccc;
+  border-left: 1px solid #ccc;
+}
+ul.no_teacher_ul > li {
+  float: left;
+  width: 33.3%;
+  box-sizing: border-box;
+  line-height: 39px;
+  border-right: 1px solid #ccc;
+  border-bottom: 1px solid #ccc;
+  text-align: center;
+  background-color: #98ff65;
+}
+</style>

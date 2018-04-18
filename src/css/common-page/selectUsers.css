@@ -1,0 +1,188 @@
+.selectUsers .h30 {
+    height: 30px;
+    line-height: 30px;
+}
+
+.selectUsers .w5 {
+    width: 5px;
+}
+
+.selectUsers .hfull {
+    height: 100%;
+}
+
+.selectUsers .hfull {
+    height: 100%;
+}
+
+.selectUsers .cp {
+    cursor: pointer;
+}
+
+.selectUsers .fr {
+    float: right;
+}
+
+.selectUsers .fl {
+    float: left;
+}
+
+.selectUsers .mb10 {
+    margin-bottom: 10px;
+}
+
+.selectUsers .ml10 {
+    margin-left: 10px;
+}
+
+.selectUsers .mb15 {
+    margin-bottom: 15px;
+}
+
+.selectUsers .ib {
+    display: inline-block;
+}
+
+.selectUsers .gradeclass .el-row {
+    height: 100%;
+    border: none;
+}
+
+.selectUsers .selectUsersPanel {
+    padding: 0px 5px;
+}
+
+.selectUsers .tools {
+    position: absolute;
+    z-index: 9999;
+    right: 0px;
+    top: 0px;
+    height: 42px;
+    line-height: 40px;
+}
+
+.selectUsers .tools .search {
+    display: inline-block;
+    width: 180px;
+    margin: 0px 5px 0px 10px;
+    height: 42px;
+}
+
+.selectUsers .search .el-input__icon {
+    cursor: pointer;
+    height: 30px;
+    line-height: 30px;
+    margin-top: 5px;
+    font-size: 16px;
+}
+
+.selectUsers .u-top {
+    color: #000;
+}
+
+.selectUsers .u-top .u-header {
+    height: 35px;
+    line-height: 35px;
+    padding-left: 10px;
+}
+
+.selectUsers .u-top .u-users {
+    margin: 10px 0px 10px 10px;
+    height: 130px;
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+.selectUsers .u-top .u-users .el-checkbox {
+    width: 95px;
+    height: 25px;
+    line-height: 25px;
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    margin: 0px auto;
+}
+
+.selectUsers .trash {
+    float: right;
+    height: 40px;
+    display: inline-block;
+    width: 30px;
+    text-align: center;
+    font-size: 18px;
+}
+
+.selectUsers .trash .fa-trash-o {
+    cursor: pointer;
+    font-size: 18px;
+    color: #666;
+}
+
+.selectUsers .left-col,
+.selectUsers .right-col {
+    height: 389px;
+}
+
+.selectUsers .right-col {
+    padding-left: 5px;
+}
+
+.selectUsers .sy-dialog__body * {
+    font-size: 12px;
+}
+
+.selectUsers .el-tabs__header {
+    margin-bottom: 5px;
+}
+
+.selectUsers .sy-dialog__footer {
+    line-height: 38px;
+    padding: 0 5px;
+}
+.selectUsers .el-tree-node__content {
+	line-height: 30px;
+}
+.selectUsers .el-tree {
+    border: none;
+    height: 100%;
+    overflow: hidden;
+    overflow-y: auto;
+    width: 191px;
+    float: left;
+}
+
+.selectUsers .line {
+    border: none;
+    float: right;
+}
+
+.selectUsers .el-dialog,
+.selectUsers .el-dialog .el-tabs__item,
+.selectUsers .el-dialog__body,
+.selectUsers .u-top .u-users,
+.selectUsers .selectUsersPanel {
+    transition: all .8s;
+}
+
+/* @media screen and (max-width: 1370px) {
+    .selectUsers .el-dialog {
+        width: 700px;
+    }
+
+    .selectUsers .el-dialog .el-tabs__item {
+        padding: 0 10px;
+    }
+
+    .selectUsers .u-top .u-list {
+        height: 120px;
+    }
+
+    .selectUsers .el-dialog__body {
+        min-height: 446px;
+    }
+
+    .selectUsers .selectUsersPanel {
+        height: 390px;
+    }
+} */

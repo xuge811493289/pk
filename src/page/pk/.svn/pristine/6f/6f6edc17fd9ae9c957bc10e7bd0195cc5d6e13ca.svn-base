@@ -1,0 +1,543 @@
+<template>
+  <div class="sy-pk-step-container sy-theme-tableBorder">
+    <sy-grad-4>
+      <div slot="bodyRight">
+        <div class="bodyRight">
+          <div class="right">
+            <el-button @click="toSaveOddEvenCourse">新增</el-button>
+          </div>
+          <div class="body">
+            <el-table :data="tableData" border size="small" align="center" height="250">
+              <el-table-column align="center" prop="name" label="单周课程">
+                <template scope="scope">
+                  <span>{{scope.row.singleCourse}}</span>
+                </template>       
+              </el-table-column>  
+              <el-table-column align="center" prop="name" label="双周课程">
+                <template scope="scope">
+                  <span>{{scope.row.doubleCourse}}</span>
+                </template>   
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="上课班级">
+                <template scope="scope">
+                  <span>{{scope.row.classShortName}}</span>
+                </template> 
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="操作">
+                <template scope="scope">
+                  <i @click="handleEdit(scope.$index,scope.row)" style="#457CD6" class="fa fa-pencil-square-o" title="编辑" ></i>
+                  <i @click="handleRemove(scope.$index,scope.row)" style='color:#ff4949' class="fa fa-trash-o" title="删除" ></i>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+    </sy-grad-4>
+    
+    <!-- 点击增加提交 -->
+    <sy-dialog title="新增" 
+      :visible.sync="dialogAdminFormVisible" 
+      :close-on-click-modal="false" 
+      position="middle" 
+      height="auto" 
+      width="345px" 
+      slide="fade">
+      <div slot="body">
+        <div style="height: 20px;"></div>
+        <el-form label-width="110px">
+          <el-form-item label="temp" value='change'>
+            <span slot="label">选择年级班级：</span>
+            <el-button @click="toSelectGradeClass" style="width:80%;" v-show="flag==1">{{mName}}</el-button>
+            <el-input  autosize @focus="toSelectGradeClass" style="width:80%;" v-model="newSingleDouble.className" v-show="flag!=1"></el-input>
+          </el-form-item>          
+          <el-form-item label="temp" value='danzhou'>
+            <span slot="label">单周上课课程：</span>
+            <el-select style="width:80%" v-model="singleCourseId">
+              <el-option :value="item.id" v-for="item in singleDoubleCourse1" :key="item.id" :label="item.name"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="temp" value='shuangzhou'>
+            <span slot="label">双周上课课程：</span>
+            <el-select style="width:80%" v-model="doubleCourseId">
+              <el-option :value="item.id" v-for="item in singleDoubleCourse1" :key="item.id" :label="item.name"></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="dialogAdminFormVisible = false">取 消</el-button>
+          <el-button type="primary" @click="save">确 定</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+    
+    <!-- 选择年级班级 -->
+    <sy-dialog title="选择年级班级" 
+      :visible.sync="dialogSelectGradeClassVisible" 
+      :close-on-click-modal="true" 
+      position="middle" 
+      height="500px" 
+      width="400px" 
+      slide="fade"
+      >
+      <div slot="body" >
+        <div style="position:absolute;top:0px;bottom:20px;height:390px;width:98%;overflow:scroll;">
+          <el-tree 
+            :data="data"
+            show-checkbox
+            accordion
+            node-key="id"
+            :props="defaultProps"
+            style="padding:30px 30px 30px 60px;border:none;"
+            ref="gradeClassTree">
+          </el-tree>
+        </div>
+
+        <div slot="footer" align="center" class="dialog-footer">
+          <div style="position:absolute;height:30px;width:98%;top:400px;bottom:0px;">
+              <el-button @click="dialogSelectGradeClassVisible = false">取 消</el-button>
+              <el-button type="primary" @click="determine">确 定</el-button>
+          </div>
+        </div>
+      </div>
+    </sy-dialog>
+
+    <!-- 选择年级班级结束 -->
+    
+    <!-- 编辑 -->
+    <sy-dialog title="编辑" 
+      :visible.sync="dialogEditVisible" 
+      :close-on-click-modal="true" 
+      position="middle" 
+      height="auto" 
+      width="345px" 
+      slide="fade">
+      <div slot="body">
+        <div style="background-color:black;"></div>
+        <el-form label-width="110px">
+          <el-form-item label="temp" value='change'>
+            <span slot="label">更改年级班级：</span>
+            <el-input v-model="editContent.className" @focus="toEditGradeClass" style="width:80%;">{{mName}}</el-input>
+          </el-form-item>          
+          <el-form-item label="temp" value='danzhou'>
+            <span slot="label">单周上课课程：</span>
+            <el-select style="width:80%" v-model="singleCourseInfo" @focus="getCourse">
+              <el-option :value="item.id" v-for="item in singleDoubleCourse2" :key="item.id" :label="item.name"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="temp" value='shuangzhou'>
+            <span slot="label">双周上课课程：</span>
+            <el-select style="width:80%" v-model="doubleCourseInfo" @focus="getCourse">
+              <el-option :value="item .id" v-for="item in singleDoubleCourse2" :key="item.id" :label="item.name"></el-option>
+            </el-select>
+          </el-form-item>
+        </el-form>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="dialogEditVisible = false">取 消</el-button>
+          <el-button type="primary" @click="edit">确 定</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+  
+    <sy-dialog title="更改年级班级" 
+      :visible.sync="dialogEditSelectVisible" 
+      :close-on-click-modal="true" 
+      position="middle" 
+      height="500px" 
+      width="400px" 
+      slide="fade"
+      >
+        <div slot="body" >
+          <div style="position:absolute;top:0px;bottom:20px;height:390px;width:98%;overflow:scroll;">
+            <el-tree 
+            :data="data2"
+            show-checkbox
+            accordion
+            node-key="id"
+            :props="defaultProps"
+            style="padding:30px 30px 30px 60px;border:none;"
+            ref="editGradeClassTree">
+            </el-tree>
+          </div>
+
+
+
+          <div align="center" style="margin:10px;" scoped>
+          <div style="position:absolute;height:30px;width:98%;top:400px;bottom:0px;">
+            <el-button @click="dialogEditSelectVisible = false">取 消</el-button>
+            <el-button type="primary" @click="alteration">确 定</el-button>
+          </div>
+        </div>
+      </div>
+    </sy-dialog>
+    <!-- 编辑结束 -->
+  </div>
+</template>
+<script>
+  import {weekHour,deleteCourse,saveCourse,selectBySolution,selectById,update,selectGradeBySolution,getClassList,getCourseList,selectCourseByWeekHour} from './request.js';
+  export default{
+    methods:{
+      handleCheckChange(data, checked, indeterminate) {
+        // console.log(data, checked, indeterminate);
+      },
+      
+      handleNodeClick(data) {
+        // console.log(data);
+      },
+      
+      handleEdit(index,row){
+        this.dialogEditVisible = true;
+        this.rowId = row.id;
+      },
+      
+      //保存新增方案
+      toSaveOddEvenCourse(){
+        this.dialogAdminFormVisible = true;
+        this.newSingleDouble.classId = '';
+        this.newSingleDouble.className = '';
+      },
+      
+      toSelectGradeClass(){
+        this.dialogSelectGradeClassVisible = true;
+      },
+      
+      toEditGradeClass(){
+        this.dialogEditSelectVisible = true;
+      },
+
+
+      
+      // 确认选择年级班级
+      determine(){
+        let datas = this.$refs.gradeClassTree.getCheckedNodes();
+        // console.log(datas);
+        let id = "";
+        let name = "";
+        datas.forEach((item)=>{
+          if(!item.children){
+            id += item.id+',';
+            name += item.label+"、";
+          }
+        });
+        id = id.substr(0, id.length - 1);
+        name = name.substr(0, name.length - 1);
+        this.newSingleDouble.classId = id;
+        this.newSingleDouble.className = name;
+        this.flag = 2;
+        this._getCourse();
+        this.dialogSelectGradeClassVisible = false;
+      },
+      
+      // 更改选择年级班级
+      alteration(){
+        let datas = this.$refs.editGradeClassTree.getCheckedNodes();
+        // console.log(datas);
+        let id = "";
+        let name = "";
+        datas.forEach((item)=>{
+          if(!item.children){
+            id += item.id+',';
+            name += item.label+"、";
+          }
+        });
+        id = id.substr(0, id.length - 1);
+        name = name.substr(0, name.length - 1);
+        this.editContent.classId = id;
+        this.editContent.className = name;
+        this.getCourse();
+        this.dialogEditSelectVisible = false;
+      },
+      
+      // 保存新增课程请求
+      save(){
+        saveCourse({
+          classIds:this.newSingleDouble.classId,
+          solutionId:this.solutionId,
+          singleCourse:this.singleCourseId,
+          doubleCourse:this.doubleCourseId,
+        }).then((result)=>{
+          if(result.status==200){
+            this.$notify({
+              type:'成功',
+              message:"保存成功"
+            });
+            this.getTable();
+            this.newSingleDouble.classId = '';
+            this.newSingleDouble.className = '';
+            this.flag = 1;
+          }else{
+            this.$notify({
+              type:'失败',
+              message:"保存失败"
+            });
+          }
+        })
+        this.dialogAdminFormVisible = false;
+      },
+      
+      edit(){
+        update({
+          classIds:this.editContent.classId,
+          id:this.rowId,
+          singleCourse:this.singleCourseInfo,
+          doubleCourse:this.doubleCourseInfo,
+        }).then((result)=>{
+          if(result.status==200){
+            this.$notify({
+              type:'成功',
+              message:"保存成功"
+            });
+            this.getTable();
+          }else{
+            this.$notify({
+              type:'失败',
+              message:result.message
+            });
+          }
+        });
+        this.dialogEditVisible = false;
+      },
+      
+      // 获取单双周课课程
+      _getCourse(){
+        selectCourseByWeekHour({
+          solutionId:this.solutionId,
+          classIds:this.newSingleDouble.classId,
+          weekHour:0.5
+        }).then((result)=>{
+          console.log(result)
+          let arr = [];
+          result.data.forEach((item)=>{
+            let obj = new Object();
+            obj.id = item.courseId;
+            obj.name = item.courseName;
+            arr.push(obj)
+          })
+          this.singleDoubleCourse1 = arr;
+          // console.log(this.singleDoubleCourse1);
+        });
+      },
+
+      getCourse(){
+        selectCourseByWeekHour({
+          solutionId:this.solutionId,
+          classIds:this.newSingleDouble.classId,
+          weekHour:0.5
+        }).then((result)=>{
+          // console.log(result.data);
+          let arr = [];
+          result.data.forEach((item)=>{
+            let obj = new Object();
+            obj.id = item.courseId;
+            obj.name = item.courseName;
+            arr.push(obj)
+          })
+          this.singleDoubleCourse2 = arr;
+          // console.log(this.singleDoubleCourse2);
+        })
+      },
+      
+      //删除
+      handleRemove(index, row) {
+        // console.log(row);
+        this.$confirm('是否继续删除?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(()=>{
+          this.deleteId = row.id;
+          deleteCourse({
+            singleDoubleCourseId:this.deleteId
+          }).then((result)=>{
+            // console.log(result)
+            if(result.status==200){
+              this.$notify({
+                type:'成功',
+                message:"删除成功"
+              });
+              this.getTable();
+          }else{
+            this.$notify({
+              type:'失败',
+              message:result.message
+            });
+          }
+          })
+
+        })
+      },
+
+      getTable(){
+      //表格
+        selectBySolution({solutionId:this.solutionId}).then((result)=>{
+          let arr = new Array;
+          result.data.forEach((item)=>{
+            // console.log(item);
+            let obj = new Object();
+            let arr2 = new Array;
+            obj.singleCourse = item.singleCourseName;
+            obj.doubleCourse = item.doubleCourseName;
+            obj.id = item.id;
+            let str = '';
+            item.singleDoubleCourseClassRVMS.forEach((items,index)=>{
+              str+=(items.classShortName+'、');
+            });
+            str = str.substr(0, str.length - 1);
+            obj.classShortName = str;
+            arr.push(obj);
+          })
+          this.tableData = arr;
+        })        
+      },
+      
+      //获取unitId
+      _init(){
+        let userMsg = this.$getSess('user');
+        if (userMsg && userMsg.data ) {
+          if (userMsg.data.unitId) {
+              this.unitId = userMsg.data.unitId;
+          }
+        }
+      },
+      _getSolutionId(){
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+    },
+    created(){
+      this._init();
+      this._getSolutionId();
+      this.flag = 1;
+      this.getTable();
+      //通过solutionId获取年级班级数据
+      selectGradeBySolution({solutionId:this.solutionId}).then((result)=>{
+        let arr = [];
+        let arr2 = [];
+        // console.log(result);
+        result.data.forEach((item,index)=>{
+          let objGrade = new Object();
+          objGrade.id = item.gradeId;
+          objGrade.label = item.gradeName;
+          objGrade.children = [];
+          getClassList({gradeId:item.gradeId}).then((res)=>{
+            res.data.forEach((items)=>{
+              let objClass = new Object();
+              objClass.id = items.id;
+              objClass.label = items.name;
+              objGrade.children.push(objClass)
+            })
+          });
+          arr.push(objGrade);
+        });
+          result.data.forEach((item,index)=>{
+          let objGrade = new Object();
+          objGrade.id = item.gradeId;
+          objGrade.label = item.gradeName;
+          objGrade.children = [];
+          getClassList({gradeId:item.gradeId}).then((res)=>{
+            res.data.forEach((items)=>{
+              let objClass = new Object();
+              objClass.id = items.id;
+              objClass.label = items.name;
+              objGrade.children.push(objClass)
+            })
+          });
+          arr2.push(objGrade);
+        });
+        this.data = arr;
+        this.data2 = arr2;
+      });
+
+    },
+    
+    data(){
+      return {
+        // gradesTreeData:[],
+        dialogSelectGradeClassVisible: false,
+        dialogAdminFormVisible: false,
+        dialogEditVisible:false,
+        dialogEditSelectVisible:false,
+        flag:'',
+        //新增课程绑定数据
+        //选择年级班级
+        //gradeId:'',
+        grades:[],
+        clazzId:'',
+        clazzInfo:[],
+        //选择课程
+        singleCourseId:'',
+        doubleCourseId:'',
+        singleCourseInfo:'',
+        doubleCourseInfo:'',
+        singleDoubleCourse1:[],
+        singleDoubleCourse2:[],        
+        mName:'请选择',
+        param:[], 
+        tableData: [],
+        data: [],
+        data2: [],
+        defaultProps: {
+          children: 'children',
+          label: 'label',
+          id:'id'
+        },
+        addForm:{
+          gradeClass:'',
+        },
+        props: {
+          label: 'name',
+          children: 'zones'
+        },
+        count: 1,
+        //编辑单双周课数据
+        editContent:{
+          classId:"",
+          className:""
+        },
+        //增加单双周课数据
+        newSingleDouble:{
+          classId:"",
+          className:""
+        },
+        deleteId:'',
+        rowId:'',
+      }
+    }
+  }
+</script>
+<style scoped>
+  .app-container-box{
+    top:185px;
+    bottom:50px;
+  }
+  .bodyRight{
+    height:100%;
+    position: absolute;
+    left:20px;
+    top:0px;
+    right:20px;
+  }
+  .right{
+    height: 40px;
+    line-height: 40px;
+  }
+  .appWord{
+    display: inline-block;
+    height:50px;
+    line-height: 40px;
+  }
+  .diaInput{
+    height: 40px;
+    line-height: 40px;
+    border:none;
+  }
+  .tree{
+    padding: 40px;
+  }
+</style>

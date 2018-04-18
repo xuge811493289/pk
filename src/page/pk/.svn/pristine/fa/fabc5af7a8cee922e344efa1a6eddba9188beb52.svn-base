@@ -1,0 +1,54 @@
+.combinTbl,.innerTbl {
+	width: 100%;
+	border-collapse: collapse;
+}
+
+.combinTbl thead th {
+	height: 3em;
+}
+.combinTbl th,.combinTbl td {
+	border: 1px solid #dfe6ec;
+	height: 3em;
+	text-align: center;
+}
+.combinTbl td a {
+	text-decoration: none;
+}
+i.fa {
+	cursor: pointer;
+	margin: 0 5px
+}
+.innerContainer {
+	padding-left: 0;
+	padding-right: 0;
+}
+.innerContainer > ul > li {
+	border-bottom: 1px solid #dfe6ec;
+	height: 3em;
+	line-height: 3em;
+}
+.innerContainer > ul > li:last-child {
+	border-bottom: none;
+}
+.miniTbl {
+	border: 1px solid #dfe6ec;
+}
+.miniTbl thead th{
+	height: 3em;
+	font-size: 12px;
+	border-left:none;
+	border-right: none;
+}
+.miniTbl td{
+	border-left:none;
+	border-right: none;
+}
+.miniTbl td input{
+	width: 80%;
+}
+.combinTbl thead{
+	background-color: rgb(238, 239, 246);
+}
+.combinTbl tr:hover{
+ 	background-color: rgb(238, 239, 246);
+}

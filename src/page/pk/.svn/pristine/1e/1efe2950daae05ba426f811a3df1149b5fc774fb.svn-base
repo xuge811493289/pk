@@ -1,0 +1,74 @@
+import request from '../../../../../../../api';
+// 新增课位
+
+
+// 通过id获取方案
+export let getPositionManageList = (solutionId) => {
+    return request('get', '/api/pk/position_manage/select_all?solutionId=' + solutionId);
+};
+// 根据方案获取年级
+export let getRelatedGrade = (params) => {
+    return request('get', '/api/pk/solution/select_pk_grade_by_s_type?solutionId='+params.solutionId+'&type=all');
+};
+// 通过单位查找方案
+export let getGradeListByUnitId = (params) => {
+    return request('get', '/api/base/grade', params);
+};
+// 获取时间表
+export let showTableTime = (unitId) =>{
+	return request('get','/api/base/festival?unitId='+unitId)
+}
+// 获取当前年度
+export let currentYear = (unitId)=>{
+	return request('get','/api/base/findYear?unitId='+unitId);
+}
+// 获取当前学期
+export let currentTerm = (unitId,year)=>{
+	return request('get','/api/base/term?unitId='+unitId+"&year="+year);
+}
+// 获取当前单位获取当前课程类型
+export let toSelectCourseType = (unitId)=>{
+	return request('get','/api/base/course_type?unitId=',unitId)
+}
+// 获取当前年级以及当前单位的课程
+export let currentCourseByGrade = (params)=>{
+	return request('get','/api/base/nologin/grade_course_r',params)
+}
+// 获取课位
+export let currentClazzPosition = (solutionId)=>{
+	return request('get',"/api/pk/position_manage/select_all?solutionId="+solutionId)
+}
+// 获取选修班信息
+export let toGetelClass = (params)=>{
+	return request('get','/api/base/el_class',params);
+}
+// 根据年级Id获取班级
+export let getClassList = (params) => {
+    return request('get', '/api/base/clazz', params);
+};
+// 根据节次id获取节次名称
+export let getFestivalNameById = (params) =>{
+	return request('get','/api/base/festival/'+params);
+}
+// 课位保存
+export let savePositionManager = (params) =>{
+	return request('post','/api/pk/position_manage/save',params);
+}
+// 删除课位
+export let deletePositionManager = (params) =>{
+	return request('post','/api/pk/position_manage/delete',params);
+}
+// 查找所有自习学生
+export let getSelfStudyStudent = (positinManageId)=>{
+	return request('get','/api/pk/position_manage/find_self_by_position_manage?positinManageId='+positinManageId)
+}
+// 修改课位信息
+export let editPositionManager = (params)=>{
+	return request('put','/api/pk/position_manage/update',params);
+}
+// 通过Id查找课位消息
+export let selectPositionById = (positionManageId)=>{
+	return request('get','/api/pk/position_manage/select_by_id?positionManageId='+positionManageId)
+}
+
+

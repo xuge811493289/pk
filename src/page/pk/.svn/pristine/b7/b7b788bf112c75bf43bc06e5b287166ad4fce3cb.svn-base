@@ -1,0 +1,241 @@
+<template>
+    <div class="sy-app-container">
+        <sy-grad-4>
+            <div slot="headerRight" style="padding: 4px 0 0 0;">
+                <el-select v-model="parmasList.yearValue" placeholder="请选择学年" style="width: 120px;" @change="handleChangeYear">
+                    <el-option
+                        v-for="item in yearsOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value">
+                    </el-option>
+                </el-select>
+                <el-select v-model="parmasList.termValue" placeholder="请选择学期" style="width: 120px;margin: 0 10px;" @change="handleChangeTerm">
+                    <el-option
+                        v-for="item in termOptions"
+                        :key="item.value"
+                        :label="item.label"
+                        :value="item.value">
+                    </el-option>
+                </el-select>
+                <span>日期：</span>
+                <el-date-picker
+                    v-model="parmasList.startTime"
+                    type="date"
+                    style="width: 120px;"
+                    placeholder="选择日期">
+                </el-date-picker>
+                <span>——</span>
+                <el-date-picker
+                    v-model="parmasList.endTime"
+                    style="width: 120px;"
+                    type="date"
+                    placeholder="选择日期">
+                </el-date-picker>
+                <el-input v-model="parmasList.keywords" placeholder="请输入关键字搜索" style="width: 150px;margin-left:10px;">
+                    <el-button slot="append" icon="search" :on-click="handleIconClick"></el-button>
+                </el-input>
+                <el-button style="float:right;margin-left:10px;" v-if="codeList.btn_pk_place_table_download" v-download="{table:true}">下载</el-button>
+                <el-button style="float:right;" v-if="codeList.btn_pk_place_table_print" @click="print">打印</el-button>
+            </div>
+            <div slot="bodyRight" style="width:100%;height:100%;padding: 10px;">
+                <p style="font-size:22px;padding: 8px 0 16px 0;text-align: center;">{{timeLimit}}</p>
+                
+                <el-table id="myCount" ref="multipleTable" :data="tableData" show-overflow-tooltip border style="width: 100%;height: 100%;">
+                    <el-table-column prop="address" label="序号" align="center"></el-table-column>
+                    <el-table-column prop="address" label="姓名" align="center"></el-table-column>
+                    <el-table-column prop="address" label="课时数" align="center"></el-table-column>
+                    <el-table-column prop="address" label="序号" align="center"></el-table-column>
+                    <el-table-column prop="address" label="姓名" align="center"></el-table-column>
+                    <el-table-column prop="address" label="课时数" align="center"></el-table-column>
+                    <el-table-column prop="address" label="序号" align="center"></el-table-column>
+                    <el-table-column prop="address" label="姓名" align="center"></el-table-column>
+                    <el-table-column prop="address" label="课时数" align="center"></el-table-column>
+                    <el-table-column prop="address" label="序号" align="center"></el-table-column>
+                    <el-table-column prop="address" label="姓名" align="center"></el-table-column>
+                    <el-table-column prop="address" label="课时数" align="center"></el-table-column>
+                </el-table>
+            </div>
+        </sy-grad-4>
+    </div>
+</template>
+<script>
+    import {
+        getYearList,
+        getTermList,
+        selectAdjustinfoList,
+        getRcCodeList,
+        getYear,
+        getFestival,
+        getBb
+    } from "../../request.js";
+    export default {
+        data() {
+            return {
+            yearsOptions: [],
+            termOptions: [],
+            tableData: [],
+            timeLimit: "",
+            parmasList: {
+                yearValue: "",
+                termValue: "",
+                keywords: "",
+                startTime: "",
+                endTime: ""
+            },
+            codeList: {
+                btn_pk_place_table_see: false,
+                btn_pk_place_table_download: false,
+                btn_pk_place_table_print: false
+            }
+            };
+        },
+        watch: {
+            parmasList: {
+            handler(obj) {
+                if (obj.yearValue && obj.termValue && obj.startTime && obj.endTime) {
+                    if (obj.termValue == 1) {
+                        this.timeLimit = `${obj.yearValue}学年度第一学期${this.$moment(obj.startTime).format("YYYY-MM-DD")}~${this.$moment(obj.endTime).format("YYYY-MM-DD")}教师课时量统计表`;
+                    } else if (obj.termValue == 2) {
+                        this.timeLimit = `${obj.yearValue}学年度第二学期${this.$moment(obj.startTime).format("YYYY-MM-DD")}~${this.$moment(obj.endTime).format("YYYY-MM-DD")}教师课时量统计表`;
+                    }
+                }
+            },
+            deep: true
+            }
+        },
+        created() {
+            this.$parent.$emit("currentPage", "/pk/kb/stat");
+            this.init();
+            getRcCodeList("category_pk_place_table", this.codeList).then(() => {
+                getYear({
+                    unitId: this.$store.state.unitId
+                }).then(res => {
+                    if (res && res.status == 200 && res.data && res.data.length > 0) {
+                        this.years = res.data;
+                        this.$nextTick(() => {
+                            res.data.forEach(_y => {
+                            if (_y.current) {
+                                this.year = _y.year;
+                                // this.year = "2015-2016"
+                            }
+                            });
+                        });
+                    } else {
+                        this.list = [];
+                        this.checkList = [];
+                        this.emptyText = "暂无数据";
+                        this.tableData = [];
+                        this.emptyTextTable = "暂无数据";
+                        this.curTime = new Date();
+                    }
+                });
+                getFestival({ unitId: this.$store.state.unitId }).then(data => {
+                    //查询节次列表
+                    if (data && data.status == 200 && data.data && data.data.length > 0) {
+                    this.festivals = data.data;
+                    getBb("XQ").then(xq => {
+                        //查询星期
+                        if (xq && xq.status == 200 && xq.data && xq.data.length > 0) {
+                        this.xqs = xq.data;
+                        }
+                    });
+                    }
+                });
+            });
+        },
+        methods: {
+            init() {
+            this.getYearList();
+            },
+            // 学年列表
+            getYearList() {
+                return new Promise((resolve, reject) => {
+                    getYearList({ unitId: this.$store.state.unitId })
+                    .then(data => {
+                        console.log(data);
+                        let arr = [];
+                        if (data.data) {
+                            data.data.forEach((_s, s) => {
+                                arr.push({
+                                    label: _s.year,
+                                    value: _s.year
+                                });
+                                if (_s.current) {
+                                    this.parmasList.yearValue = _s.year;
+                                }
+                            });
+                        }
+                        this.yearsOptions = arr;
+                        resolve(data);
+                    })
+                    .catch(err => {
+                        reject(err);
+                    });
+                });
+            },
+            // 学期列表
+            getTermList() {
+                return new Promise((resolve, reject) => {
+                    getTermList({
+                        unitId: this.$store.state.unitId,
+                        year: this.parmasList.yearValue
+                    })
+                    .then(data => {
+                        let arr = [];
+                        if (data.data) {
+                            data.data.forEach((_s, s) => {
+                                arr.push({
+                                    label: _s.name,
+                                    value: _s.schoolTerm
+                                });
+                                if (_s.current == 1) {
+                                    this.parmasList.termValue = _s.schoolTerm;
+                                }
+                            });
+                        }
+                        this.termOptions = arr;
+                        resolve(data);
+                    })
+                    .catch(err => {
+                        reject(err);
+                    });
+                });
+            },
+            handleChangeYear(val) {
+                if (val) {
+                    this.getTermList().then(data => {
+                    this.getList();
+                    });
+                } else {
+                    this.parmasList.termValue = "";
+                    this.termOptions = [];
+                }
+            },
+            handleChangeTerm(val) {
+                if (val) {
+                    this.getList();
+                }
+            },
+            handleChangeType(val) {
+                this.getList();
+            },
+            getList() {
+                selectAdjustinfoList(
+                    this.$store.state.unitId,
+                    this.parmasList.yearValue,
+                    this.parmasList.termValue,
+                    this.parmasList.keywords
+                )
+                .then(data => {
+                    console.log(data);
+                })
+                .catch(err => {});
+            },
+            //  打印
+            print() {
+                this.$print("#myCount");
+            }
+        }
+    };
+</script>

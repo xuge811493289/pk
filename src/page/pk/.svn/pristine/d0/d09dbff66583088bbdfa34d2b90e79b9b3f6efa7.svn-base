@@ -1,0 +1,335 @@
+<template>
+    <sy-grad-4 :border="false" v-loading="loading" element-loading-text="正在导入...">
+        <div slot="bodyRight">
+            <div class="sy-up" style="text-align: right;">
+                <span v-if="$slots.backBtn">
+                    <slot name="backBtn"></slot>
+                </span>
+                <el-button @click="back" style="margin-right: 10px;">返回</el-button>
+            </div>
+            <div class="sy-import sy-down">
+                <div class="sy-import-title" style="margin-top: 15px;">导入参数配置：</div>
+                <div class="sy-import-parms">
+                    <el-checkbox v-model="sendSms">导入成功是否发短信给教师</el-checkbox>
+                    <div class="info-msg">
+                        <p style="padding:0 8px;">编辑短信内容：{账号}、{密码}会自动把用户的账号和密码填充进去</p>
+                        <el-input type="textarea" resize="none" :rows="3" v-model="smsContent"></el-input>
+                    </div>
+                    <el-checkbox v-model="radomPasswrod">
+                        密码是否随机生成
+                        <el-tooltip class="item" popper-class="password-msg" effect="light" content="选择密码随机生成，导入成功后下载一个Excel文档，对应每个用户的账号和密码" placement="right">
+                            <i class="el-icon-warning" style="color: #fb9a53;"></i>
+                        </el-tooltip>
+                    </el-checkbox>
+                </div>
+                <div class="sy-import-parms">
+                    <el-checkbox v-model="radomLoginName">
+                        账号自动生成
+                        <span>账号前缀：</span>
+                        <el-input v-model.trim="prfix" placeholder="" size="mini" style="width:100px;"></el-input>
+                        <el-tooltip class="item" popper-class="password-msg" effect="light" content="选择账号随机生成，对应每个用户的账号和密码" placement="right">
+                            <i class="el-icon-warning" style="color: #fb9a53;"></i>
+                        </el-tooltip>
+                    </el-checkbox>
+                </div>
+
+                <div class="sy-import-title" style="margin-top: 15px;">导入模板下载：</div>
+                <div class="sy-import-parms">
+                    <div class="sy-import-parms-body">
+                        <div class="sy-import-parms-body-header">
+                            <span style="line-height: 36px;">请选择要导入的字段</span>
+                        </div>
+                        <div class="sy-import-parms-body-body">
+                            <el-checkbox-group v-model="checkList">
+                                <el-checkbox v-for="item in downloadDatas" :label="item.value" :checked="item.isSelected" :disabled="item.disabled" :key="item.label" style="marginLeft:5px;">
+                                    {{item.label}}
+                                </el-checkbox>
+                            </el-checkbox-group>
+                        </div>
+                        <div class="sy-import-parms-body-footer right">
+                            <el-button type="primary" size="small" @click="download">下载</el-button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sy-import-title">导入文件：</div>
+                <el-upload ref="upload" :data="data" :action="base.base + importTeachers.base" :before-upload="handleBeforeUpload" :on-change="onChange" :on-success="onSuccess" :multiple="false" :show-file-list="false" :auto-upload="false" style="padding-left: 2em;font-size: 14px;">
+                    <div slot="trigger" class="sy-import-file-name el-input__inner">
+                        <div class="sy-import-file-name-div">{{uploadValue}}</div>
+                        <span class="fa fa-folder-o"></span>
+                    </div>
+                    <el-button class="sy-import-button" size="small" @click="submitUpload">导入</el-button>
+                </el-upload>
+
+                <div class="sy-import-title" style="margin-top: 15px;" v-if="importMsg && importMsg.length > 0">导入日志：</div>
+                <div class="sy-import-msg" v-if="importMsg && importMsg.length > 0">
+                    <div v-for="(o, index) in importMsg" :key="index" class="sy-import-msg-div">
+                        <span :class="'fa ' + o.type"></span>
+                        <span v-if="!o.success" style="color:#ff4949">{{o.msg}}</span>
+                        <span v-else style="color:#13CE66">{{o.msg}}</span>
+                    </div>
+                </div>
+
+                <div class="sy-import-title" style="margin-top: 15px;">导入提示：</div>
+                <div class="sy-import-info">
+                    <div class="sy-import-info-node">
+                        <span class="fa"></span>Excel导入格式如下</div>
+                    <el-table :data="tableData" border style="width: 100%">
+                        <el-table-column prop="a1" label="帐号">
+                        </el-table-column>
+                        <el-table-column prop="a2" label="姓名">
+                        </el-table-column>
+                        <el-table-column prop="a3" width="80" label="性别">
+                        </el-table-column>
+                        <el-table-column prop="a6" label="身份证">
+                        </el-table-column>
+                        <el-table-column prop="a4" label="手机号">
+                        </el-table-column>
+                        <el-table-column prop="a5" label="电子邮箱">
+                        </el-table-column>
+                        <el-table-column prop="a10" width="80" label="考勤号">
+                        </el-table-column>
+                        <!-- <el-table-column
+                                prop="a8"
+                                label="生日">
+                            </el-table-column> -->
+                        <el-table-column prop="a9" label="所属部门">
+                        </el-table-column>
+
+                        <el-table-column prop="a11" label="任教年级">
+                        </el-table-column>
+                        <el-table-column prop="a12" label="任教学科">
+                        </el-table-column>
+                        <el-table-column prop="a7" label="密码">
+                        </el-table-column>
+                    </el-table>
+                    <div class="sy-import-info-node">
+                        <span class="fa"></span> 帐号、姓名、性别都必须填写；勾上账号自动生成后账号不用填写,生成的账号规则为“账号前缀+t+年度+001自增”，例如：t2016001<br>
+                        <span class="fa"></span> 如果没有填写密码并且密码不是自动生成那么密码和账号一致；密码随机只针对于新增用户生效<br>
+                        <span class="fa"></span> 考勤号必须是5位数字，且每个用户的考勤号唯一<br>
+                        <span class="fa"></span> 多个任教年级和任教学科必须使用逗号隔开<br>
+                        <span class="fa"></span> 重复的教师账号将会被覆盖；如果用户已存在，表格中密码字段值为空，则不会做该用户的密码更新操作.<br>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </sy-grad-4>
+</template>
+
+<script>
+
+import config from './config.js';
+import _ from 'lodash';
+import {
+    downloadImportColumns,
+    downloadImportTemplate,
+    downloadParams,
+    downloadTeacherImportPass,
+    importTeachers
+} from '../request.js';
+export default {
+    name: 'improtMsg',
+    props: {
+        unitId: {
+            type: String
+        },
+    },
+    data() {
+        return {
+            msg: 'Welcome to Your Vue.js App',
+            formLabelAlign: {
+                name: '',
+                region: '',
+                type: ''
+            },
+            sendSms: '',
+            loading: false,
+            smsContent: '账号:{账号}密码:{密码}访问地址:http://3.shiyuesoft.com',
+            radomPasswrod: false,
+            radomLoginName: false,
+            prfix: '',
+            checkList: [],
+            fileList: [],
+            downloadDatas: [],
+            defaultSelected: [],
+            tableData: config.excelTable || [],
+            uploadValue: '',
+            currentUnitId: '',
+            currentNodeKey: '',
+            unitType: '',
+            importTeachers: importTeachers,
+            base: {
+                base: window.ShiYue.base
+            },
+            data: {
+                sendSms: false,
+                smsContent: '',
+                radomPasswrod: false,
+                unitId: '',
+                radomLoginName: false,
+                prfix: ''
+            },
+            importMsg: []
+        }
+    },
+    created() {
+        this.$parent.$emit('currentPage', '/base/teachers');
+        this.currentUnitId = this.$route.params.unitId;
+        this.currentNodeKey = this.$route.params.currentNodeKey;
+        this.unitType = this.$route.params.unitType;
+        downloadImportColumns().then((data) => {
+            // console.log(data);
+            this.downloadDatas = [];
+            if (data && data.data && data.data.length > 0) {
+                data.data.forEach((_d, i) => {
+                    let value = '';
+                    for (let key in _d) {
+                        if (key !== 'required') {
+                            value = key;
+                        }
+                    }
+                    if (_d.required === "true") {
+                        this.defaultSelected.push(value);
+                    }
+                    this.downloadDatas.push({
+                        label: _d[value],
+                        value: value,
+                        disabled: _d.required === "true" ? true : false,
+                        isSelected: true
+                    });
+                })
+            }
+        })
+    },
+    methods: {
+        back() {
+            this.$router.push({
+            path:'/pk/pre/manager/baseData/teachers',
+            params: { unitId: this.currentUnitId, currentNodeKey: this.currentNodeKey, unitType: this.unitType } });
+        },
+        submitUpload() {
+            if (!this.uploadValue) {
+                this.$notify({
+                    title: '提示',
+                    message: '选择文件后导入！',
+                    type: 'warning'
+                });
+                return;
+            }
+            this.data.sendSms = this.sendSms ? true : false;
+            this.data.smsContent = this.data.sendSms ? this.smsContent : '';
+            this.data.radomPasswrod = this.radomPasswrod ? true : false;
+            this.data.radomLoginName = this.radomLoginName ? true : false;
+            this.data.prfix = this.prfix;
+            this.data.unitId = this.currentUnitId;
+            this.$refs.upload.submit();
+        },
+        // 下载
+        download() {
+            let obj = {
+                unitId: this.currentUnitId,
+                downloadOptions: this.checkList.join(',')
+            }
+            this.$downloade(downloadParams.base, 'POST', obj)
+        },
+        // 上传文件改变函数
+        onChange(file, fileList) {
+            this.uploadValue = file.name;
+        },
+        // 上传之前回调函数
+        handleBeforeUpload(file) {
+            this.importMsg = [];
+            this.loading = true;
+            const isXLS = file.type === 'application/vnd.ms-excel';
+            const isXLSX = file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+            const isLt10M = file.size / 1024 / 1024 < 10;
+
+            if (!isXLS && !isXLSX) {
+                this.$notify({
+                    title: '提示',
+                    message: '导入文件只能是 xls/xlsx 格式!',
+                    type: 'error'
+                });
+            }
+            if (!isLt10M) {
+                this.$notify({
+                    title: '提示',
+                    message: '导入文件大小不能超过 10MB!',
+                    type: 'error'
+                });
+            }
+            if ((isXLS || isXLSX) && isLt10M) {
+                this.loading = true;
+            } else {
+                this.loading = false;
+            }
+            return (isXLS || isXLSX) && isLt10M;
+        },
+        // 上传成功
+        onSuccess(response, file, fileList) {
+            if (response.status !== 200) {
+                this.$notify({
+                    title: '导入失败',
+                    message: _.map(response.data, 'message').join('、'),
+                    type: 'error'
+                });
+
+                this.loading = false;
+                setTimeout(() => { this.uploadValue = '' }, 100)
+                return;
+            }
+            let arr = [];
+            setTimeout(() => { this.uploadValue = '' }, 100)
+            if (response && response.data) {
+                if (!response.data.fail || response.data.fail.length == 0) {
+                    this.$notify({
+                        title: '成功',
+                        message: '导入成功！',
+                        type: 'success'
+                    });
+                } else if (!response.data.success || response.data.success.length == 0) {
+                    this.$notify({
+                        title: '失败',
+                        message: '导入失败！',
+                        type: 'error'
+                    });
+                } else {
+                    this.$notify({
+                        title: '警告',
+                        message: '导入数据部分有误！',
+                        type: 'warning'
+                    });
+                }
+                response.data.fail.forEach((_res, i) => {
+                    arr.push({
+                        msg: _res,
+                        success: false,
+                        type: 'fail'
+                    })
+                })
+                response.data.success.forEach((_res, i) => {
+                    arr.push({
+                        msg: _res,
+                        success: true,
+                        type: 'success'
+                    })
+                })
+            } else {
+                arr = [];
+            }
+            this.importMsg = arr;
+            this.loading = false;
+            if (this.radomPasswrod) {
+                if (response && response.data && response.data.data && response.data.data.length > 0) {
+                    this.$downloade(downloadTeacherImportPass.base, 'POST', { 'userIds': response.data.data.join(',') })
+                }
+            }
+        }
+    }
+}
+</script>
+
+<!-- Add "scoped" attribute to limit CSS to this component only -->
+<style scoped>
+
+</style>

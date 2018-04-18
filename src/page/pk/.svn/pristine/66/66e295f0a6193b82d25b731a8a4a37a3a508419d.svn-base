@@ -1,0 +1,877 @@
+<template>
+  <div class="sy-pk-step-container sy-theme-tableBorder">
+    <sy-grad-4 :border="false">
+      <div slot="headerRight">
+        <div class="header">
+          年级:
+          <el-select size="small" height='30' v-model="selectGradeId" placeholder="请选择" @change="getGrade">
+            <el-option v-for="item in selectGrade" :key="item.id" :label="item.gradeName" :value="item.gradeId"></el-option>
+          </el-select>
+          <span class="button-right">
+            <el-button @click="toSaveAdminCourse">新增课程</el-button>
+            <el-button @click="toTeachingSetting">批量设置任教</el-button>
+            <el-button @click="toImport">导入</el-button>
+          </span>
+        </div>
+      </div>
+      <div slot="bodyRight">
+        <div class="sy-pk-bodyright">
+          <el-table :data="tableData" border  @cell-click="thisCell" :empty-text="emptyText" tooltip-effect="dark">
+            <el-table-column  v-for="item in columnX" :key="item.prop" :width="item.width" :fixed="item.fixed" :prop="item.prop" :label="item.label" align="center">
+              <template scope="scope">
+                <div v-show="item.prop !== 'courseName' && item.prop !== 'weekHour'">
+                  <!-- 显示教师 -->
+                  <span v-show="scope.row[item.prop + '_' + scope.row.courseId] && scope.row[item.prop + '_' + scope.row.courseId+'_teacher'].length>0" v-for="tag in scope.row[item.prop + '_' + scope.row.courseId+'_teacher']">
+                    {{tag.teacherName}},
+                  </span>
+                  <!-- 显示几节连堂 -->
+                  <div v-show ="scope.row[item.prop + '_' + scope.row.courseId+'_weekHour'] != ''">
+                    {{scope.row[item.prop + '_' + scope.row.courseId + '_weekHour']}}
+                    <!-- v-show条件是有几个连堂就出来-->
+                    <span v-show="scope.row[item.prop + '_' + scope.row.courseId+'_weekHour'] != scope.row[item.prop + '_' + scope.row.courseId+'_singleSection']">
+                      (
+                      <span v-show="scope.row[item.prop + '_' + scope.row.courseId+'_twoSection'] !=0">{{scope.row[item.prop + '_' + scope.row.courseId+'_twoSection']}}个2节连堂</span>
+                      <span v-show="scope.row[item.prop + '_' + scope.row.courseId+'_threeSection'] !=0">{{scope.row[item.prop + '_' + scope.row.courseId+'_threeSection']}}个3节连堂</span>
+                      <span v-show="scope.row[item.prop + '_' + scope.row.courseId+'_fourSection'] !=0">{{scope.row[item.prop + '_' + scope.row.courseId+'_fourSection']}}个4节连堂</span>
+                      )
+                    </span>
+                  </div>
+                  <!-- 显示上课场地 -->
+                  <div v-show="scope.row[item.prop + '_' + scope.row.placeId+'_placeId'] != ''">
+                    {{scope.row[item.prop + '_' + scope.row.courseId+'_placeName']}}
+                  </div>
+                  <!-- 显示总课时 -->
+                  <div v-show="scope.row.courseName == '总课时'">
+                    {{scope.row[item.prop + '_totalHour']}}
+                  </div>
+                </div>
+                <span v-show="item.prop === 'courseName'">{{scope.row[item.prop]}}</span>
+                <!-- 如果行内的课时相同，年级课时显示 -->
+                <span v-show="item.prop === 'weekHour' && scope.row[item.prop] != null" >{{scope.row[item.prop]}}</span>
+                <!-- 整个年级年级总课时 -->
+                <span v-show="item.prop === 'weekHour' && scope.row.courseName == '总课时'" >{{totalHours}}</span>
+                
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+    </sy-grad-4>
+
+    <!-- 新增课程 -->
+    <sy-dialog title="课程设置" :visible.sync="dialogAdminFormVisible" :close-on-click-modal="false" position="middle" height="auto" width="345px" slide="fade">
+      <div slot="body">
+        <div style="height: 20px;"></div>
+        <el-form ref="addCourseForm" :rules="rules" label-width="110px">
+          <el-form-item label="temp" prop="gradeNamerule">
+            <span slot="label">年级：</span>
+            <el-select v-model="toSave.gradeId" placeholder="请选择" @change="changeGrade" style="width:200px">
+              <el-option v-for="item in grades" :key="item.gradeId" :label="item.gradeName" :value="item.gradeId"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="temp" prop="clazzNamerule">
+            <span slot="label">班级：</span>
+            <el-select v-model="toSave.clazzId" placeholder="请选择" @change="changeClazz" style="width:200px"> 
+              <el-option v-for="item in clazzInfo" :key="item.id" :label="item.name" :value="item.id"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="temp" prop="courseNamerule">
+            <span slot="label">课程名称：</span>
+            <el-select v-model="toSave.courseId" placeholder="请选择" @change="changeCourse" style="width:200px">
+              <el-option v-for="item in courseInfo" :key="item.id" :label="item.name" :value="item.id"></el-option>
+            </el-select>
+          </el-form-item>
+          <el-form-item label="temp">
+            <span slot="label">任课老师：</span>
+            <div class="el-input el-input--small cp" @click="selectTeacher('addBZR')">
+              <div class="el-input__inner" style="line-height: 22px;width:200px;" v-if="addTeacherForm.clazzCourseTeacherSaveVMS && addTeacherForm.clazzCourseTeacherSaveVMS.length > 0">{{addTeacherForm.lName}}</div>
+              <div class="el-input__inner" style="line-height: 22px;text-align:center;width:200px;" v-else>点击选择老师</div>
+            </div>
+          </el-form-item>
+          <el-form-item label="temp">
+            <span slot="label">课时设置：</span>
+            <div class="el-input el-input--small cp" @click="toSelectclasshour">
+              <div class="el-input__inner" style="line-height: 22px;width:200px;"  v-if="courseTime.singleSection != '' || courseTime.twoSection != '' || courseTime.threeSection != '' || courseTime.fourSection != ''">{{ allCourseTime }}</div>
+              <div class="el-input__inner" style="line-height: 22px;text-align: center;width:200px;" v-else>点击选择课时</div>
+            </div>
+          </el-form-item>
+          <el-form-item label="上课教室：" prop="classroomrule">
+              <el-dropdown menu-align="start" style="width: 200px;">
+                  <span class="el-dropdown-link">
+                      <el-input readonly v-model="address.name" placeholder="请选择教室" size="small"></el-input>
+                  </span>
+                  <el-dropdown-menu slot="dropdown" style="min-width: 200px;">
+                      <el-tree ref="editdropdowntree" :border="false" highlight-current :expand-on-click-node="false" :data="placeTypes" :props="placeTypesProps" :load="loadNode" accordion node-key="domId" lazy @current-change="roomsChange"></el-tree>
+                  </el-dropdown-menu>
+              </el-dropdown>
+          </el-form-item>
+          <el-form-item>
+              <div align="center">
+                <el-button type="primary" @click="addCourseSetting">确 定</el-button>
+                <el-button @click="dialogAdminFormVisible = false">取 消</el-button>
+              </div>
+          </el-form-item>
+        </el-form>
+      </div>
+    </sy-dialog>
+
+    <!-- 课时弹框 -->
+    <sy-dialog  title="课节组合编辑器" :visible.sync="dialogselectclasshourVisible" :close-on-click-modal="false" position="middle" height="auto" width="400px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-selectclasshour">
+          <div class="sy-pk-weekHour">
+            每周次数
+          </div>
+          <div class="sy-pk-select">
+            <span>单节</span>
+            <input type="number" min='0' v-model='courseTime.singleSection'>
+          </div>
+          <div class="sy-pk-select">
+            <span>2节连上</span>
+            <input type="number" min='0' v-model='courseTime.twoSection'>
+          </div>
+          <div class="sy-pk-select" >
+            <span>3节连上</span>
+            <input type="number" min='0' v-model='courseTime.threeSection'>
+          </div>
+          <div class="sy-pk-select" >
+            <span>4节连上</span>
+            <input type="number" min='0' v-model='courseTime.fourSection'>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="dialogselectclasshourVisible = false">确 定</el-button>
+          <el-button @click="dialogselectclasshourVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>  
+
+    <!-- 编辑年级总课时弹框 -->
+    <sy-dialog  title="年级课时" :visible.sync="dialogGradeHourVisible" :close-on-click-modal="false" position="middle" height="auto" width="400px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-selectclasshour">
+          <el-form label-width="110px">
+            <el-form-item label="temp">
+              <span slot="label" >学科：</span>
+              <span>{{thisCourseName}}</span>
+            </el-form-item>
+            <el-form-item label="temp">
+              <span slot="label">课时：</span>
+              <div class="el-input el-input--small cp" @click="toSelectclasshour">
+                <div class="el-input__inner" style="line-height: 22px;width:200px;"  v-if="courseTime.singleSection != '' || courseTime.twoSection != '' || courseTime.threeSection != '' || courseTime.fourSection != ''">{{ allCourseTime }}</div>
+                <div class="el-input__inner" style="line-height: 22px;text-align: center;width:200px;" v-else>点击选择课时</div>
+              </div>
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="toEditGradeWeekHour">确 定</el-button>
+          <el-button @click="dialogGradeHourVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 点击课程信息 -->
+    <sy-dialog  title="编辑课程信息" :visible.sync="dialogupdateCoursesettingVisible" :close-on-click-modal="false" position="middle" height="auto" width="400px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-selectclasshour">
+          <el-form label-width="110px">
+            <el-form-item label="temp">
+              <span slot="label" >课程名称：</span>
+              <span>{{thisCourseName}}</span>
+            </el-form-item>
+            <el-form-item label="temp">
+              <span slot="label">任课老师：</span>
+              <div class="el-input el-input--small cp" @click="selectTeacher('addBZR')">
+                <div class="el-input__inner" style="line-height: 22px;width:200px;" v-if="addTeacherForm.clazzCourseTeacherSaveVMS && addTeacherForm.clazzCourseTeacherSaveVMS.length > 0">{{addTeacherForm.lName}}</div>
+                <div class="el-input__inner" style="line-height: 22px;text-align:center;width:200px;" v-else>点击选择老师</div>
+              </div>
+            </el-form-item>
+            <el-form-item label="temp">
+              <span slot="label">课时设置：</span>
+              <div class="el-input el-input--small cp" @click="toSelectclasshour">
+                <div class="el-input__inner" style="line-height: 22px;width:200px;"  v-if="courseTime.singleSection != '' || courseTime.twoSection != '' || courseTime.threeSection != '' || courseTime.fourSection != ''">{{ allCourseTime }}</div>
+                <div class="el-input__inner" style="line-height: 22px;text-align: center;width:200px;" v-else>点击选择课时</div>
+              </div>
+            </el-form-item>
+            <el-form-item label="temp">
+              <span slot="label">上课教室：</span>
+              <el-dropdown menu-align="start" style="width: 200px;">
+                  <span class="el-dropdown-link">
+                    <el-input readonly v-model="editAddress.name" placeholder="请选择教室" size="small" @focus="editChangeClassroom"></el-input>
+                  </span>
+                  <el-dropdown-menu slot="dropdown" style="min-width: 200px;">
+                      <el-tree ref="editdropdowntree2" :border="false" highlight-current :expand-on-click-node="false" :data="editplaceTypes" :props="placeTypesProps" :load="editloadNode" accordion node-key="domId" lazy @current-change="EditroomsChange"></el-tree>
+                  </el-dropdown-menu>
+              </el-dropdown>
+            </el-form-item>
+          </el-form>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="toUpdatePkteach">确 定</el-button>
+          <el-button @click="dialogupdateCoursesettingVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+
+  </div>
+</template>
+<script>
+  import {getGradeAndCourse,getClassList,savePkTeach,getCourseList,selectPkTeach,setUpGradeTeach,pkUpdateInfo,getPlaceType,getPlace} from './request';
+  import _ from 'lodash';
+  import { Loading } from 'element-ui';
+  export default{
+    data(){
+      return {
+        unitId:'',
+        // 弹框
+        dialogAdminFormVisible:false,
+        dialogselectclasshourVisible:false,
+        dialogGradeHourVisible:false,
+        dialogupdateCoursesettingVisible:false,
+        // 选择年级绑定数据
+        selectGradeId:'',
+        selectGrade:[],
+        grades:[],  
+        clazzInfo:[],        
+        courseInfo:[],
+        tableData:[],
+        tableTitle:[],
+        totalHours:0,
+        /*保存课程数据*/
+        toSave:{
+          gradeId:'',
+          clazzId:'',
+          courseId:'',
+        },
+        /*选老师*/
+        addTeacherForm: {
+          teacherId:'',
+          coursehour:'',
+          clazz:'',
+          lName:'',
+          clazzCourseTeacherSaveVMS:[]
+        },  
+        //课时设置数据 
+        courseTime:{
+          singleSection:0,
+          twoSection:0,
+          threeSection:0,
+          fourSection:0
+        },
+        // 请求行政班课程表的参数放在数组中
+        param:[],
+        // 场地设置数据
+        address:{
+          id:'',
+          name:''
+        },
+        placeTypes: [],
+        // 学科弹框
+        thisCourseName:'',
+        columnX:'',
+        emptyText:'暂无数据',
+        placeTypesProps: {
+          label: 'name',
+          children: 'children'
+        },
+        gradeId:'',
+        /*修改年级课时数据*/
+        editForm:{
+
+        },
+        editAddress:{
+          id:'',
+          name:''
+        },
+        editplaceTypes: [],
+        gradeClazzCourseId:'',
+        editWeekHourCourseId:'',
+      }
+    },
+    computed:{
+      // 总课时计算
+      allCourseTime: function(){
+        return parseFloat(this.courseTime.singleSection) + 2 * parseFloat(this.courseTime.twoSection) + 3 * parseFloat(this.courseTime.threeSection) + 4 * parseFloat(this.courseTime.fourSection);
+      }
+    },
+    created(){
+      // 获取单位
+      this._init();
+      // 获取方案
+      this._getSession();
+      // 获取年级数据
+      getGradeAndCourse({solutionId:this.solutionId}).then((results)=>{
+        this.selectGrade = results.data;
+        this.grades = results.data;
+        // 设置默认选中
+        this.selectGradeId = this.grades[0].gradeId;
+        // 初始化查询排课任教
+        this.selectPkAndTeach({solutionId:this.solutionId,gradeId:this.selectGradeId})
+      })
+    },
+    methods:{
+      // 设置任教页面跳转
+      toTeachingSetting(){
+        this.$router.push("/pk/pre/teachingSetting");
+      },
+      // 点击导入
+      toImport(){
+        this.$router.push({
+            name: 'importTeachSetting',
+            params: {
+              gradeId: this.selectGradeId,
+              solutionId:this.solutionId
+            }
+        });
+        window.sessionStorage.setItem("gradeId",this.selectGradeId);
+      },
+      // 初始化拿单位和方案id
+      _getSession() {
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+      // 初始化获取单位id
+      _init() {
+        let userMsg = this.$getSess('user');
+        if (userMsg && userMsg.data ) {
+          if (userMsg.data.unitId) {
+            this.unitId = userMsg.data.unitId;
+          }
+        }
+      },
+      // 查询排课任教  参数为年级和方案
+      selectPkAndTeach(params){
+        selectPkTeach(params).then((data)=>{
+          if(data.code =='ok'){
+            if(data.data){
+              if(data.data.gradeWeekHourMap){
+                this.totalHours = data.data.gradeWeekHourMap[this.selectGradeId]
+              }
+              // 获取表头
+              if(data.data.classVMS && data.data.classVMS.length > 0){
+                let arrx = [];
+                arrx.push({
+                  label:'课程/时间',
+                  prop:'courseName',
+                  width:'200',
+                  fixed:true
+                });
+                arrx.push({
+                  label:'年级课时',
+                  prop:'weekHour',
+                  width:'200',
+                  fixed:true
+                });
+                data.data.classVMS.forEach((clazz,index)=>{
+                  arrx.push({
+                    label:clazz.name,
+                    prop:clazz.id,
+                    width:'300',
+                    fixed:false,
+                    total:data.data.classWeekHourMap[clazz.id]
+                  })
+                })
+                // 获取表头以及第一列
+                this.columnX = arrx;
+              }else{
+                this.columnX = [];
+                this.emptyText = '暂无班级数据'
+              }
+              // 遍历课程  加上总课时一栏
+              if(data.data.gradeCourseVMS && data.data.gradeCourseVMS.length > 0){
+                data.data.gradeCourseVMS.push({
+                  courseName:'总课时',
+                  courseId:''
+                })
+                let tableArr = [];
+                // courses是课程信息   共9条
+                data.data.gradeCourseVMS.forEach((courses,index)=>{
+                  let row = {
+                    courseName:courses.courseName,
+                    courseId:courses.courseId,
+                  }
+                  let whs = [];
+                  if(this.columnX.length >0 ){
+                    // 遍历表头信息 共5条
+                    this.columnX.forEach((td,index)=>{
+                      // td为每一个单元格的信息
+                      if (data.data.gradeClazzCourseRVMS && data.data.gradeClazzCourseRVMS.length > 0) {
+                        // 根据课程id，挑选出每行的信息    根据班级和课程的id对应
+                        let teacher = _.find(data.data.gradeClazzCourseRVMS, { 'classId': td.prop, 'courseId': courses.courseId});
+                        // 添加行内属性
+                        if (teacher) {
+                          row[td.prop + '_' + courses.courseId + 'ids'] = _.map(teacher.clazzCourseTeacherRVMS, 'teacherId');
+                          row[td.prop + '_' + courses.courseId + '_teacher'] = teacher.clazzCourseTeacherRVMS;
+                          row[td.prop + '_' + courses.courseId + '_show'] = false;
+                          row[td.prop + '_' + courses.courseId] = true;
+                          row[td.prop + '_' + courses.courseId + '_singleSection'] = teacher.singleSection;
+                          row[td.prop + '_' + courses.courseId + '_twoSection'] = teacher.twoSenction;
+                          row[td.prop + '_' + courses.courseId + '_threeSection'] = teacher.threeSenction;
+                          row[td.prop + '_' + courses.courseId + '_fourSection'] = teacher.fourSenction;
+                          row[td.prop + '_' + courses.courseId + '_placeId'] = teacher.placeId;
+                          row[td.prop + '_' + courses.courseId + '_placeName'] = teacher.placeName;
+                          row[td.prop + '_' + courses.courseId + '_id'] = teacher.id;
+                          row[td.prop + '_' + courses.courseId + '_weekHour'] = teacher.weekHour;
+                          whs.push(teacher.weekHour);
+                        } else{
+                          row[td.prop + '_' + courses.courseId + 'ids'] = [];
+                          row[td.prop + '_' + courses.courseId] = false;
+                          row[td.prop + '_totalHour'] = td.total;
+
+                        }
+                      }
+                    })
+                  }
+                  let wh = [];
+                  // 如果部分班级没有年级课时  课时为空
+                  if(whs.length == this.columnX.length - 2 ){
+                    // 如果所有的班级都有课时
+                    let temp = whs[0];
+                    // 如果都和第一个课时相同，就push进数组
+                    for(let i=1;i<whs.length;i++){
+                      if(whs[i] == temp){
+                        wh.push(whs[i])
+                      }
+                    }
+                  }
+                  // 如果数组长度为剩下的长度  那么证明所有的周课时都相同
+                  if(wh.length == whs.length-1){
+                    row['weekHour'] = wh[0];
+                  }
+                  // 将得到的行信息放进数组
+                  tableArr.push(row);
+                })
+                this.tableData = tableArr;
+              }else{
+                this.tableData = [];
+              }
+            } 
+          }
+        })
+      },
+      // 年级更改查询排课任教
+      getGrade(gradeId){
+        this.gradeId = gradeId;
+        this.tableData =[];
+        this.tableTitle=[];
+        this.emptyText = '暂无数据';
+        let params = {solutionId:this.solutionId,gradeId:gradeId}
+        this.selectPkAndTeach(params);
+      },
+      // 点击新增课程
+      toSaveAdminCourse(){
+        // 点击新增重置表单
+        this.toSave.gradeId = '';
+        this.toSave.clazzId = '';
+        this.toSave.courseId = '';
+        this.courseTime = {
+          singleSection:0,
+          twoSection:0,
+          threeSection:0,
+          fourSection:0
+        }
+        this.addTeacherForm.lName = '';
+        this.address.name = '';
+        this.addTeacherForm.clazzCourseTeacherSaveVMS = [];
+        this.dialogAdminFormVisible = true;
+        this.placeTypes = [];
+        // 获取场地数据
+        getPlaceType(this.unitId).then((d) => {
+            if (!d || !d.data || !d.data.length) {
+              return false;
+            }
+            let data = d.data,
+            length = data.length;
+            for (let i = 0; i < length; i++) {
+              let t = data[i];
+              this.placeTypes.push({
+                  id: t.id,
+                  domId: ('type' + t.id),
+                  type: 'type',
+                  name: t.name
+              });
+            }
+        });
+      },
+      // 年级联动选择班级 拿到的年级Id放在数组中
+      changeGrade(gradeId){
+        let p = {gradeId:gradeId}
+        // 获取班级
+        if(gradeId){
+          getClassList(p).then((clazz)=>{
+            this.clazzInfo = clazz.data;
+          })
+        }
+        //获取单位下的课程
+        getCourseList({unitId:this.unitId}).then((results)=>{
+          if(results && results.code =='ok'){
+            let courseInfo = [];
+            results.data.forEach((item)=>{
+              if(item.nodeAttribute =='course'){
+                courseInfo.push(item);
+              }
+            })
+            this.courseInfo = courseInfo;
+          }
+        })
+      },
+      // 选老师
+      selectTeacher(){
+        let _m = [];
+        if (this.addTeacherForm.teacherId !== "" && this.addTeacherForm.teacherId !== undefined)
+            _m.push(this.addTeacherForm.teacherId);
+          this.$SelectUsers({
+            solutionId:this.solutionId,
+            beforeClose: (selectUsers, instance)=>{
+              let arr = []
+              if(selectUsers != []){
+                selectUsers.forEach((item,index)=>{
+                  arr.push({
+                    teacherId:item.id,
+                    teacherName:item.realName
+                  })
+                })
+                this.addTeacherForm.clazzCourseTeacherSaveVMS = [];
+                this.addTeacherForm.clazzCourseTeacherSaveVMS = arr;
+                let lname = []
+                arr.forEach((item,index)=>{
+                  lname.push(item.teacherName);
+                })
+                this.addTeacherForm.lName = ''+lname;
+              }else{
+                this.$notify({title: '警告', message: '请至少选择一个教师！', type: 'warning'});
+              }
+            }
+          })
+      },
+      // 点击课时设置
+      toSelectclasshour(){
+        this.dialogselectclasshourVisible = true;
+      },
+      // 点击新增获取场地
+      roomsChange(node) {
+          let $dropdowntree_ = this.$refs['editdropdowntree'];
+          if (node.type === 'type') {
+            if (!$dropdowntree_) {
+              return false;
+            }
+            for (let i = 0; i < $dropdowntree_.$children.length; i++) {
+              if ($dropdowntree_.$children[i] && $dropdowntree_.$children[i].node['key'] == node.domId) {
+                $dropdowntree_.$children[i].handleExpandIconClick();
+              }
+            }
+            return false;
+          }
+          this.address.id = node.id;
+          this.address.name = node.address;
+          $dropdowntree_.$parent.$parent.hide();
+      },
+      loadNode(node, resolve) {
+          var datas = [];
+          if (node.level === 1) {
+            getPlace({
+                unitId: this.unitId,
+                placeTypeId: node.data.id
+            }).then((d) => {
+                if (!d || !d.data || !d.data.list || !d.data.list.length) {
+                  resolve(datas);
+                  return false;
+                }
+                let data = d.data.list,
+                  length = data.length,
+                  $dropdowntree_ = this.$refs['editdropdowntree'];
+                for (let i = 0; i < length; i++) {
+                  let t = data[i];
+                  datas.push({
+                    id: t.id,
+                    domId: ('room' + t.id),
+                    type: 'room',
+                    name: t.name,
+                    address: t.name
+                  });
+                }
+                resolve(datas);
+                if ($dropdowntree_) {
+                  setTimeout(()=>{
+                  for (let i = 0; i < $dropdowntree_.$children.length; i++) {
+                    if ($dropdowntree_.$children[i] && $dropdowntree_.$children[i].node['key'] == node['key']) {
+                      let _node_ = $dropdowntree_.$children[i];
+                      for (let j = 0; j < _node_.$children.length; j++) {
+                        if (_node_.$children[j] && _node_.$children[j].handleExpandIconClick) {
+                          _node_.$children[j].handleExpandIconClick();
+                        }
+                      }
+                    }
+                  }
+                }, 100);
+              }
+            });
+          } else {
+            resolve(datas);
+          }
+      },
+      // 新增课程设置
+      addCourseSetting(){
+        let arr = this.addTeacherForm.clazzCourseTeacherSaveVMS;
+        let param = {
+          solutionId:this.solutionId,
+          gradeId:this.toSave.gradeId,
+          classId:this.toSave.clazzId,
+          courseId:this.toSave.courseId,
+          singleSection:this.courseTime.singleSection,
+          twoSection:this.courseTime.twoSection,
+          threeSection:this.courseTime.threeSection,
+          fourSection:this.courseTime.fourSection,
+          placeId:this.address.id,
+          clazzCourseTeacherSaveVMS:arr
+        };
+        savePkTeach(param).then((results) =>{
+          if(results && results.code =='ok'){
+            this.dialogAdminFormVisible = false;
+            this.$notify({title: '成功', message: '保存成功', type: 'success'});
+          }
+          this.selectPkAndTeach({solutionId:this.solutionId,gradeId:this.selectGradeId})
+        })
+      },
+      EditroomsChange(node) {
+          let $dropdowntree_ = this.$refs['editdropdowntree2'];
+          if (node.type === 'type') {
+            if (!$dropdowntree_) {
+              return false;
+            }
+            for (let i = 0; i < $dropdowntree_.$children.length; i++) {
+              if ($dropdowntree_.$children[i] && $dropdowntree_.$children[i].node['key'] == node.domId) {
+                $dropdowntree_.$children[i].handleExpandIconClick();
+              }
+            }
+              return false;
+          }
+          this.editAddress.id = node.id;
+          this.editAddress.name = node.address;
+          $dropdowntree_.$parent.$parent.hide();
+      },
+      editloadNode(node, resolve) {
+          var datas = [];
+          if (node.level === 1) {
+            getPlace({
+                unitId: this.unitId,
+                placeTypeId: node.data.id
+            }).then((d) => {
+                if (!d || !d.data || !d.data.list || !d.data.list.length) {
+                  resolve(datas);
+                  return false;
+                }
+                let data = d.data.list,
+                  length = data.length,
+                  $dropdowntree_ = this.$refs['editdropdowntree2'];
+                for (let i = 0; i < length; i++) {
+                  let t = data[i];
+                  datas.push({
+                    id: t.id,
+                    domId: ('room' + t.id),
+                    type: 'room',
+                    name: t.name,
+                    address: t.name
+                  });
+                }
+                resolve(datas);
+                if ($dropdowntree_) {
+                  setTimeout(()=>{
+                  for (let i = 0; i < $dropdowntree_.$children.length; i++) {
+                    if ($dropdowntree_.$children[i] && $dropdowntree_.$children[i].node['key'] == node['key']) {
+                      let _node_ = $dropdowntree_.$children[i];
+                      for (let j = 0; j < _node_.$children.length; j++) {
+                        if (_node_.$children[j] && _node_.$children[j].handleExpandIconClick) {
+                          _node_.$children[j].handleExpandIconClick();
+                        }
+                      }
+                    }
+                  }
+                }, 100);
+              }
+              });
+          } else {
+            resolve(datas);
+          }
+      },
+      // 单击单元格，相应修改信息
+      thisCell(row,column,cell,event){
+        if(column.label == '年级课时' && row.courseName!=='总课时'){
+          // 重置课时设置信息
+          this.courseTime.singleSection = 0;
+          this.courseTime.twoSection = 0;
+          this.courseTime.threeSection = 0;
+          this.courseTime.fourSection = 0;
+          this.dialogGradeHourVisible = true;
+          this.thisCourseName = row.courseName;
+          this.editWeekHourCourseId = row.courseId;
+        }else if(column.label != '年级课时'&& column.label != '课程/时间'){
+          let p = column.property+'_'+row.courseId;
+          // 如果行数据不为空的话   name才可以进行修改
+          if(row[p + '_id'] != undefined){
+            this.dialogupdateCoursesettingVisible = true;
+            this.editAddress.name = '';
+            this.thisCourseName = row.courseName;
+            // 拿到行数据    并展示在修改弹框中
+            let teacher = p + '_teacher'
+            let single = p +'_singleSection';
+            let two = p +'_twoSection';
+            let three = p +'_threeSection';
+            let four = p +'_fourSection';
+            let weekHour = p +'_weekHour';
+            let placeName = p + '_placeName';
+            let placeId = p + '_placeId';
+            let id = p + '_id';
+
+            // 转换为页面展示格式
+            let teac = []
+            let lname = []
+            if(row[teacher] != null){
+              row[teacher].forEach((item,index)=>{
+                teac.push({
+                  teacherId:item.teacherId,
+                  teacherName:item.teacherName
+                })
+                lname.push(item.teacherName);
+              })
+            }
+            // 获取到当前单元格的课时信息  如果单元格信息不变 就提交默认
+            this.courseTime.singleSection = row[single]?row[single]:0;
+            this.courseTime.twoSection = row[two]?row[single]:0;
+            this.courseTime.threeSection = row[three]?row[three]:0;
+            this.courseTime.fourSection = row[four]?row[four]:0;
+            this.courseTime.weekHour = row[weekHour]?row[weekHour]:0;
+            this.gradeClazzCourseId = row[id];
+            this.addTeacherForm.clazzCourseTeacherSaveVMS = teac;
+            this.addTeacherForm.lName = '' + lname;
+            this.editAddress.name = row[placeName];
+            this.editAddress.id = row[placeId];
+          }
+        }
+      },
+      // 点击确定修改年级课时
+      toEditGradeWeekHour(){
+        let params = {
+          solutionId:this.solutionId,
+          gradeId:this.selectGradeId,
+          courseId:this.editWeekHourCourseId,
+          singleSection:this.courseTime.singleSection,
+          twoSenction:this.courseTime.twoSection,
+          threeSenction:this.courseTime.threeSection,
+          fourSenction:this.courseTime.fourSection
+        }
+        setUpGradeTeach(params).then((results)=>{
+          if(results && results.code =='ok'){
+            this.$notify({
+              type:'success',
+              message:'修改成功'
+            })
+            this.selectPkAndTeach({solutionId:this.solutionId,gradeId:this.selectGradeId});
+            this.dialogGradeHourVisible = false;
+          }
+        })
+      },
+      // 修改弹框获取场地信息
+      editChangeClassroom(){
+        this.editplaceTypes = [];
+        getPlaceType(this.unitId).then((d) => {
+          if (!d || !d.data || !d.data.length) {
+              return false;
+          }
+          let data = d.data,
+          length = data.length;
+          for (let i = 0; i < length; i++) {
+            let t = data[i];
+            this.editplaceTypes.push({
+                id: t.id,
+                domId: ('type' + t.id),
+                type: 'type',
+                name: t.name
+            });
+          }
+        });
+      },
+      // 点击确定，确认单元格的修改
+      toUpdatePkteach(){
+        let params = {
+          clazzCourseTeacherSaveVMS:this.addTeacherForm.clazzCourseTeacherSaveVMS,
+          gradeClazzCourseId:this.gradeClazzCourseId,
+          singleSection:parseInt(this.courseTime.singleSection),
+          twoSenction:parseInt(this.courseTime.twoSection),
+          threeSenction:parseInt(this.courseTime.threeSection),
+          fourSenction:parseInt(this.courseTime.fourSection),
+          placeId:this.editAddress.id
+        }
+        pkUpdateInfo(params).then((results)=>{
+          if(results && results.code =='ok'){
+            this.$notify({
+              type:'success',
+              message:"修改成功！"
+            })
+          }
+          this.dialogupdateCoursesettingVisible = false;
+          // 修改完成重新请求页面
+          this.selectPkAndTeach({solutionId:this.solutionId,gradeId:this.selectGradeId})
+        })
+      }
+    }
+  }
+</script>
+<style scoped>
+  .app-container-box {
+    top:185px;
+    bottom:50px;
+  }
+  .header{
+    position:absolute;
+    width:100%;
+    height:50px;
+    line-height: 50px;
+  }
+  .button-right{
+    display: inline-block;
+    margin-right:10px;
+    position: absolute;
+    right:10px;
+  }
+  .sy-pk-bodyright{
+    height:100%;
+    position: absolute;
+    right:0;
+    left:0;
+    top:5px;
+    overflow: scroll;
+    padding: 0 20px;
+  }
+  .sy-pk-selectclasshour{
+    margin:20px;
+  }
+  .sy-pk-select{
+    height:40px;
+    line-height: 40px;
+  }
+  .sy-pk-select span{
+    display: inline-block;
+    width:120px;
+    text-align: center;
+    font-size: 14px;
+  }
+  .sy-pk-select input{
+    width:150px;
+  }
+  .sy-pk-weekHour{
+    margin-left:150px;
+  }
+  .sy-pk-col{
+    margin:20px;
+  }
+</style>

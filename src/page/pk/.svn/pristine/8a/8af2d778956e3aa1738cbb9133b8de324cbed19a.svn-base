@@ -1,0 +1,751 @@
+<template>
+	<div class="sy-pk-step-container sy-theme-tableBorder">
+		<sy-grad-4>
+			<div slot="bodyRight">
+		    <div class="bodyRight">
+		    	<div class="right">
+		    		<el-button @click="toOpenMergeCourseDialog()">新增</el-button>
+		    	</div>
+		    	<div class="body">
+            <!-- 合班分层数据表格开始 -->
+            <table class="combinTbl">
+              <thead>
+                <tr>
+                  <th>课程</th>
+                  <th>合班班级</th>
+                  <th>层次名称</th>
+                  <th>上课老师</th>
+                  <th>场地</th>
+                  <th style="width:70px">上课学生</th>
+                  <th style="width:100px">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for='mc in combinData'>
+                  <!-- 显示课程名称 -->
+                  <td>{{mc.courseName}}</td>
+                  <!-- 显示合班班级 -->
+                  <td>
+                    <ul>
+                      <li v-for='mcTs in mc.mergeCourseClassRVMS'>
+                        <span>{{mcTs.classShortName}}</span>
+                      </li>
+                    </ul>
+                  </td>
+                  <!-- 显示层次名称 -->
+                  <td class="innerContainer">
+                    <ul>
+                      <li v-for='mcNs in mc.mergeLayeredVMS'>
+                        <span>{{mcNs.layeredName}}</span>
+                      </li>
+                    </ul>
+                  </td>
+                  <!-- 显示上课老师 -->
+                  <td class="innerContainer">
+                    <ul>
+                      <li v-for='mcNs in mc.mergeLayeredVMS'>
+                        <span>{{mcNs.teacherName}}</span>
+                      </li>
+                    </ul>
+                  </td>
+                  <td class="innerContainer">
+                    <ul>
+                      <li v-for='mcNs in mc.mergeLayeredVMS'>
+                        <span>{{mcNs.placeName}}</span>   
+                      </li>
+                    </ul>
+                  </td>
+                  <td class="innerContainer">
+                    <ul>
+                      <li v-for='mcNs in mc.mergeLayeredVMS'>
+                         <span><a style='color:#333' href="javascript:void(0);" @click="toShowStudent(mcNs,mc.mergeCourseClassRVMS)">查看</a>  </span>
+                      </li>
+                    </ul>
+                  </td>
+                  <td>
+                      <i @click="toOpenMergeCourseDialog(mc.id)" style='color:#333'  class="fa fa-pencil-square-o" title="编辑" ></i>
+                      <i @click="handleDeleteMergeLayer(mc.id)" style='color:#ff4949' class="fa fa-trash-o" title="删除" ></i>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <!-- 表格结束 -->
+		    	</div>
+		    </div>
+			</div>
+		</sy-grad-4>
+		<!-- 新增分层课弹框开始 -->
+    <sy-dialog title="新增分层课" :visible.sync="dialogAdminFormVisible" :close-on-click-modal="false" position="middle" height="auto" width="700px" slide="fade">
+      <div slot="body">
+        <el-form :inline="true" label-width="100px" style="margin:10px 0px 0px 20px">
+          <el-form-item>
+            选择科目：
+            <el-select size="small" style="width:130px;margin-right: 10px" v-model="combinForm.courseId" placeholder="请选择科目" @change='addLayeredCourses'>
+              <el-option v-for="item in addLayeredForm.courseValue" 
+              :key="item.id" 
+              :label="item.name" 
+              :value="item.id"></el-option> 
+            </el-select>
+          </el-form-item>
+          <el-form-item>
+            合班班级：<el-input v-model="combinForm.classNames" style="width:150px;" placeholder="请选择" @focus="addLayeredClasses"></el-input>
+          </el-form-item>
+        </el-form>
+        <div class="sy-add">
+          <el-button type="primary" @click="toAddLayered">新增</el-button>
+        </div>
+
+        <!-- 新增层次信息表格开始 -->
+        <div class="sy-pk-margin">
+          <table class="miniTbl combinTbl">
+            <thead>
+              <tr>
+                <th style="width:25%">层次名称</th>
+                <th style="width:25%">上课老师</th>
+                <th style="width:40%">场地</th>
+                <th style="width:10%">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for='(mlu,index) in combinForm.mergeLayeredUpdateVMS'>
+                <td>
+                  <el-input v-model='mlu.layeredName' placeholder="请输入层次名称" size="small"></el-input>
+                </td>
+                <td>
+                 <el-input 
+                  @focus="selectTeacher(mlu.index)" readonly
+                  v-model='mlu.teacherName'
+                  :placeholder="请选择" size="small"></el-input>
+                </td>
+                <td>
+                  <el-dropdown 
+                    trigger='click'
+                    menu-align="start" @visible-change='dropdownChange'>
+                    <span class="el-dropdown-link"  @click='beforePlaceNodeClick(mlu.index)'>
+                     <el-input readonly v-model='mlu.placeName'  placeholder="请选择教室" size="small"></el-input>
+                    </span>
+                    <el-dropdown-menu slot="dropdown" style="min-width: 200px;">
+                      <el-tree
+                        :data="placeTypesData"
+                        :props="placeTypesProps"
+                        accordion
+                        highlight-current
+                        :load="loadPlaceData"
+                        lazy
+                        @node-click="handlePlaceNodeClick">
+                      </el-tree>
+                    </el-dropdown-menu>
+                  </el-dropdown>
+                </td>
+                <td>
+                  <i class="fa fa-close" @click="addDialoghandleDelete(mlu.index)"></i>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <!-- 新增层次信息表格结束 -->
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="dialogAdminFormVisible = false">取 消</el-button>
+          <el-button type="primary" @click="sureToAddLayered">确 定</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+    <!-- 新增分层课弹框介绍 -->
+    <!-- 选择班级 -->
+    <sy-dialog title="选择班级" :visible.sync="dialogaddClassesVisible" :close-on-click-modal="false" position="middle" height="auto" width="600px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-margin">
+          <div class="sy-pk-dialog-margin">
+            <el-tree ref="gradeClassTree" style="margin:10px;" :data="addLayeredForm.selectClazz" show-checkbox node-key="id" :props="defaultProps"></el-tree>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button type='primary' @click="toSureClassIds">确 定</el-button>
+          <el-button @click="dialogaddClassesVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+    <!-- 查看选修班学生 -->
+    <sy-dialog title="查看选修班学生" :visible.sync="dialogShowStudentVisible" :close-on-click-modal="false" position="middle"  width="600px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-margin">
+          <div class="right">
+            <el-button @click="addStudent">新增</el-button>
+            <el-button @click="importStudent">导入</el-button>
+            <el-button @click="exportStudent">导出</el-button>
+          </div>
+          <el-table :data="students" :close-on-click-modal="false" position="middle" height="400" width="345px" slide="fade">
+            <el-table-column prop="" label="学号" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.number}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="姓名" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.studentName}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="性别" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.gender==1?'男':'女'}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="年级" align="center" width='100'>
+              <template scope="scope" align="center" >
+                <span>{{scope.row.gradeName}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="行政班" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.className}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="操作" align="center">
+              <template scope="scope">
+                <el-button type='text' @click="handleDeleteStudent( scope.row)">删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+
+        <div align="center">
+          <el-button type="primary" @click="dialogShowStudentVisible = false">确 定</el-button>
+          <el-button @click="dialogShowStudentVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+    <!-- 导入 -->
+    <sy-dialog title="导入" :visible.sync="dialogimportStudentVisible" :close-on-click-modal="false" position="middle" height="auto" width="600px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-margin">
+          <div class="importStudenthead">
+            <template>
+              <el-radio v-model="radio" label="1">覆盖已有数据</el-radio>
+              <el-radio v-model="radio" label="2">不覆盖已有数据</el-radio>
+              <el-button size="mini" style="margin-left:30px">浏览</el-button>
+              <span >未选择文件</span>
+              <el-button size='mini' style="margin-left:30px">提交</el-button>
+            </template>
+          </div>
+          <div class="model">
+            <span>模板样式</span>
+            <el-button size="mini" style="float:right">下载模板</el-button>
+          </div>
+          <el-table :data="students" :close-on-click-modal="false" position="middle" height="auto" width="345px" slide="fade">
+            <el-table-column prop="" label="学号" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.studentid}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="姓名" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.name}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="性别" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.gender}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="年级" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.grades}}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="" label="行政班" align="center">
+              <template scope="scope" align="center">
+                <span>{{scope.row.clazz}}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="dialogimportStudentVisible = false">取 消</el-button>
+        <el-button type="primary" @click="dialogimportStudentVisible = false">确 定</el-button>
+      </span>
+    </sy-dialog>
+    <!-- 选择上课班级 -->
+    <sy-dialog title='选择班级' :visible.sync="dialogSelectClazzVisible" :close-on-click-modal="false" position="middle" height="200px" width="700px" slide="fade">
+      <sy-ztree :treeData="resoureTreeData" :chkboxType="chkboxType" :defaultChecked="defaultChecked" :isExpendAll="isExpendAll" @checked-node="checkedNode" showCheckBox></sy-ztree>
+      <div align="center">
+        <el-button type="primary" @click="dialogAdminFormVisible = false">确 定</el-button>
+        <el-button @click="dialogAdminFormVisible = false">取 消</el-button>
+      </div>
+    </sy-dialog>  
+	</div>
+</template>
+<script>
+  import {getMergeCourse,getGradeListBysolutionId,getCourseByUnitId,getClassListByGradeId,deleteLayeredBymergeId,getPlaceType
+    ,getPlace,saveCombinationCourse,updateCombinationCourse,selectStudentByMergeLayeredId
+    ,getCurrentTerm
+    ,saveCombinationCourseStudent
+  } from "./request.js";
+  //添加合班分层的API
+  import addLayerMethods from './addLayer.js'
+  //添加模态框API
+  import dialogs from './dialogs.js'
+	export default{
+		data(){
+			return {
+				dialogAdminFormVisible: false,
+        dialogSelectClazzVisible:false,
+        dialogShowStudentVisible:false,
+        dialogimportStudentVisible:false,
+        dialogaddClassesVisible:false,
+        solutionId:'',
+        mName:'请输入',
+        /*主页表格数据*/
+				tableData: [],
+        /*弹出框数据*/
+        dislogData:[
+          {
+
+          }
+        ], 
+        // 增加合班分层课数据
+        addLayeredForm:{
+          course:'',
+          courseValue:[],
+          clazz:'',
+          selectClazz:[],
+          selectClazzIds:[],
+        },
+        /*选老师*/
+        addForm: {
+          teacher:'',
+          side:'',
+          weekhour:'',
+          clazz:'',
+          lName:'选择教师',
+          placeId:'',
+          placeName:'',
+        },
+        /*上课班级数据*/
+        resoureTreeData: [],
+        chkboxType: {
+            "Y": "ps", 
+            "N": "s" 
+        },
+        defaultChecked: [],
+        isExpendAll: false,
+        students:[],
+        radio: '1',
+        placeTypes: [],
+        placeTypesProps: {
+          label: 'name',
+          children: 'children'
+        },
+        temp:null,
+        //合班分层数据
+        combinData:[],
+        //合班分层添加数据
+        combinForm:{
+          classIds:[],
+          classNames:[],
+          layerNum:0,
+          mergeLayeredUpdateVMS:[{
+            index:0,
+            mergeLayeredId:'',
+            layeredName:'',
+            teacherId:'',
+            placeId:'',
+            placeName:''
+          }],
+          solutionId:'',
+          courseId:''
+        },
+        //默认属性配置
+        defaultProps:{
+          children: 'children',
+          label: 'label'
+        },
+        //场地数据
+        placeTypesData:[],
+        dropdownStatus:false,
+        currentIndex:0,
+        currentMergeCourse:{}, //当前分层信息（查看上课学生时使用）
+        currentYear:'', //当前学年
+        currentTerm:''  //当前学期
+			}
+		},
+    created(){
+      this._init();
+      this.solutionId = window.sessionStorage.getItem("solutionId");
+      this.combinForm.solutionId = this.solutionId;
+      this.searchMergeCourse(this.solutionId);
+      getCurrentTerm(this.unitId).then(({data})=>{
+        this.currentYear = data.year;
+        this.currentTerm = data.name;
+      });
+    },
+    methods:{
+      ...addLayerMethods,
+      ...dialogs,
+      _init() {
+        let userMsg = this.$getSess('user');
+        if (userMsg && userMsg.data ) {
+          if (userMsg.data.unitId) {
+            this.unitId = userMsg.data.unitId;
+          }
+        }
+      },
+      /*
+       * 查询合班分层课程数据
+       */
+      searchMergeCourse(solutionId){
+        // 根据方案获取合班分层课数据
+        getMergeCourse(solutionId).then((results)=>{
+          this.combinData = results.data;
+        })
+      },
+      /*
+       * 打开模态框
+       */
+      toOpenMergeCourseDialog(id){
+        // 重置表单，清空信息
+        this.addLayeredForm = {
+          course:'', courseValue:[], clazz:'', selectClazz:[], selectClazzIds:[],
+        };
+        this.dislogData = [{}];
+        this.addForm = {teacher:'', side:'', weekhour:'', clazz:'', lName:'选择教师', placeId:'', placeName:'', };
+        // 新增分层课的课程
+        getCourseByUnitId(this.unitId).then((results)=>{
+          let courses = [];
+          if(results && results.code =='ok'&& results.data.length !=0){
+            results.data.forEach((item)=>{
+              if(item.nodeAttribute =='course'){
+                courses.push(item);
+              }
+            })
+          this.addLayeredForm.courseValue = courses;
+          }
+        })
+        //如果ID存在，意味着是要执行修改操作
+        if(id){
+          //获取要修改的合班分层课信息
+          this.combinData.forEach((item)=>{
+            if(id == item.id){
+              var cids = item.mergeCourseClassRVMS.map((ele)=>{
+                return ele.classId;
+              })
+              var cnames = item.mergeCourseClassRVMS.map((ele)=>{
+                return ele.classShortName;
+              })
+              var mls = []
+              item.mergeLayeredVMS.forEach((ml,i)=>{
+                var m = {
+                  index:i,
+                  mergeLayeredId:ml.id,
+                  layeredName:ml.layeredName,
+                  teacherId:ml.teacherId,
+                  teacherName:ml.teacherName,
+                  placeId:ml.placeId,
+                  placeName:ml.placeName
+                }
+                mls.push(m);
+              });
+              this.layerNum = item.mergeLayeredVMS-1;
+              this.combinForm.mergeCourseId = item.id;
+              this.combinForm.mergeLayeredUpdateVMS = mls;
+              this.combinForm.courseId = item.courseId;
+              this.combinForm.classIds = cids;
+              this.combinForm.classNames = cnames;
+            }
+          });
+        } else {
+          //重置combinForm
+          this.combinForm={
+            classIds:[],
+            classNames:[],
+            layerNum:0,
+            mergeLayeredUpdateVMS:[{
+              index:0,
+              mergeLayeredId:'',
+              layeredName:'',
+              teacherId:'',
+              placeId:'',
+              placeName:''
+            }],
+            solutionId:'',
+            courseId:''
+          }
+          this.combinForm.solutionId = this.solutionId;
+        }
+        //加载数据
+        this.loadPlaceTypesData();
+        this.dialogAdminFormVisible = true;
+      },
+      selectClazz(){
+        this.dialogSelectClazzVisible = true;
+      },
+      //删除学生
+      handleDeleteStudent(row){
+        var restStudents = this.students.filter((item)=>{
+          return item.studentId != row.studentId;
+        })
+
+        var stus = restStudents.map((user)=>{
+          return {classId:user.classId, studentId:user.studentId };
+        });
+        var params = {
+          layeredCourseStudentVMS:stus,
+          mergeCourseId:this.currentMergeCourse.mcNs.mergeCourseId,
+          mergeLayeredId:this.currentMergeCourse.mcNs.id
+        }
+        saveCombinationCourseStudent(params).then((result)=>{
+          if(result.status == 200){
+            this.students = restStudents;
+            this.$notify({title: '成功', message: '操作成功！', type: 'success'});
+          }
+        });
+        
+      },
+      //查看选修班学生
+      toShowStudent(mcNs,classes){
+        //设置当前分层
+        this.currentMergeCourse = {
+          mcNs,classes
+        }
+        //设置参数查询合层分班的学生
+        var params = {
+          mergeLayeredId:mcNs.id,
+          mergeCourseId:mcNs.mergeCourseId
+        }
+        selectStudentByMergeLayeredId(params).then((result)=>{
+          if(result.status = 200){
+            this.students = result.data;
+          } else {
+            this.students = [];
+          }
+        });
+        this.dialogShowStudentVisible = true;
+      },
+      // 新增分层课->点击和班班级
+      addLayeredClasses(){
+        this.dialogaddClassesVisible = true;
+        // 处理年级班级树
+        getGradeListBysolutionId({solutionId:this.solutionId}).then((result)=>{
+          let arr = [];
+          result.data.forEach((item,index)=>{
+            let objGrade = {};
+            objGrade.id = item.gradeId;
+            objGrade.label = item.gradeName;
+            objGrade.children = [];
+            getClassListByGradeId({gradeId:item.gradeId}).then((res)=>{
+              res.data.forEach((items)=>{
+                let objClass = {};
+                objClass.id = items.id;
+                objClass.label = items.name;
+                objClass.shortName = items.shortName;
+                objGrade.children.push(objClass)
+              })
+            });
+            arr.push(objGrade);
+          });
+          this.addLayeredForm.selectClazz= arr;
+        });
+      },
+      // 点击确定获取班级ID
+      toSureClassIds(){
+        let datas = this.$refs.gradeClassTree.getCheckedNodes();
+        var ids = [];
+        var names = [];
+        datas.forEach((item)=>{
+
+          if(item.children){
+            item.children.forEach((c)=>{
+              ids.push(c.id);
+              names.push(c.shortName);
+            });
+          } else {
+            ids.push(item.id);
+            names.push(item.shortName)
+          }
+        });
+        this.combinForm.classIds = Array.from(new Set(ids));
+        this.combinForm.classNames = Array.from(new Set(names));
+        this.dialogaddClassesVisible = false;
+      },
+     
+      // 点击确定
+      sureToAddLayered(){
+        var promise ;
+        if(this.combinForm.mergeCourseId){
+          promise = updateCombinationCourse(this.combinForm);
+        } else {
+          promise = saveCombinationCourse(this.combinForm);
+        }
+        promise.then((results)=>{
+          if(results && results.code =='ok'){
+            this.$notify({title: '成功', message: '保存成功！', type: 'success'});
+            this.searchMergeCourse(this.solutionId);
+            this.dialogAdminFormVisible = false;
+          }else{
+            this.$notify({title: '失败', message: results.fieldErrors, type: 'error'});
+          }
+        })
+      },
+      /*
+       * 删除合班分层课
+       */ 
+      handleDeleteMergeLayer(id) {
+        this.$confirm('删除后无法恢复, 是否确定操作?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          deleteLayeredBymergeId({mergeCourseId:id}).then((results)=>{
+            if(results && results.code =='ok'){
+              this.$notify({title:'成功', type: 'success', message: '删除成功!'});
+              this.searchMergeCourse(this.solutionId);
+            }else{
+              this.$notify({title: '失败', message: results.message, type: 'error'});
+            }
+          })
+        }).catch(() => {});
+      },
+      checkedNode(nodes){
+        this.currentChexedKeys = _.map(nodes.allCeckNodes, 'id');
+      },
+      selectSide(node) {
+        let $dropdowntree_ = this.$refs['editdropdowntree'];
+        if (node.type === 'type') {
+          if (!$dropdowntree_) {
+            return false;
+          }
+          for (let i = 0; i < $dropdowntree_.$children.length; i++) {
+            if ($dropdowntree_.$children[i] && $dropdowntree_.$children[i].node['key'] == node.domId) {
+              $dropdowntree_.$children[i].handleExpandIconClick();
+            }
+          }
+            return false;
+        }
+        $dropdowntree_.$parent.$parent.hide();
+        this.dislogData[this.temp]['placeId'] = node.id; 
+        this.dislogData[this.temp]['placeName'] = node.address; 
+      },
+      loadNode(node, resolve) {
+          var datas = [];
+          if (node.level === 1) {
+              getPlace({
+                  unitId: this.unitId,
+                  placeTypeId: node.data.id
+              }).then((d) => {
+                  if (!d || !d.data || !d.data.list || !d.data.list.length) {
+                      resolve(datas);
+                      return false;
+                  }
+                  let data = d.data.list,
+                      length = data.length,
+                      $dropdowntree_ = this.$refs['editdropdowntree'];
+                  for (let i = 0; i < length; i++) {
+                      let t = data[i];
+                      datas.push({
+                          id: t.id,
+                          domId: ('room' + t.id),
+                          type: 'room',
+                          name: t.name,
+                          address: t.name
+                      });
+                  }
+                  resolve(datas);
+                  if ($dropdowntree_) {
+                    setTimeout(()=>{
+                    for (let i = 0; i < $dropdowntree_.$children.length; i++) {
+                      if ($dropdowntree_.$children[i] && $dropdowntree_.$children[i].node['key'] == node['key']) {
+                        let _node_ = $dropdowntree_.$children[i];
+                        for (let j = 0; j < _node_.$children.length; j++) {
+                          if (_node_.$children[j] && _node_.$children[j].handleExpandIconClick) {
+                            _node_.$children[j].handleExpandIconClick();
+                          }
+                        }
+                      }
+                    }
+                  }, 100);
+                }
+              });
+          } else {
+              resolve(datas);
+          }
+      },
+
+      addStudent(){
+        this.selectStudents(this.currentMergeCourse);
+      },
+      importStudent(){
+        this.dialogimportStudentVisible = true;
+      },
+      exportStudent(){
+
+      },
+    },
+	}
+</script>
+<style scoped>
+  @import './combinTbl.css';
+	.app-container-box{
+    top:185px;
+    bottom:50px;
+  }
+  .bodyRight{
+  	height:100%;
+  	position: absolute;
+    right:0;
+    left:0;
+  	top:0px;
+    overflow: scroll;
+    padding: 0 20px;
+  }
+  .right{
+  	height: 40px;
+  	line-height: 40px;
+  }
+  .appWord{
+    display: inline-block;
+    height:50px;
+    line-height: 40px;
+  }
+  .diaInput{
+    height: 40px;
+    line-height: 40px;
+    border:none;
+  }
+  .selectBtn-in-dialog{
+    width:60px;
+    height:40px;
+    border:none;
+  }
+  .sy-pk-margin{
+    margin:0 20px 10px 20px;
+  }
+  .importStudenthead{
+    margin:10px 0px;
+  }
+  .importStudent{
+    display: inline-block;
+    margin-left: 20px;
+  }
+  .model{
+    margin:4px;
+    height:30px;
+    line-height: 30px;
+  }
+  .sy-add{
+    float: right;
+    margin:-10px 20px 5px 0px;
+  } 
+  .el-tree {
+    border: none;
+  }
+  .el-table__body-wrapper {
+    height: auto;
+  }
+</style>

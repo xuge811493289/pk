@@ -1,0 +1,522 @@
+<!--连堂-->
+<template>
+  <div class="sy-pk-step-container sy-theme-tableBorder">
+    <sy-grad-4 :border="false">
+      <!-- 基础设置页面 -->
+      <div slot="bodyRight" v-show="type==0">
+        <!-- 连堂 -->
+        <b>可连堂节次：</b>
+        <ul class="coursesList">
+          <li>
+            <el-checkbox-group v-model="baseCheckedData" @change="saveAndEditBaseCheck">
+              <el-checkbox v-for="item in festival" :label="item.id" :key='item'>第{{item.start}}节~第{{item.end}}节</el-checkbox>
+            </el-checkbox-group>
+          </li>
+          <li>
+            <el-button @click='advancedSetting' type="primary">切换到高级设置</el-button>
+          </li>
+          <div class="saveBaseContinue">
+            <el-button type="primary" style="margin-top:20px;" 
+            @click="saveBaseContinue">确认基础连堂</el-button>
+
+          </div>
+        </ul>
+      </div>
+      <!-- 高级设置页面 -->
+      <div slot="bodyRight" v-show="type==1">
+        <b>可连堂节次：</b>
+        <div class="continueHeader">
+          <el-radio-group  @change="changeGrade" v-model="checkedGrade">
+            <el-radio-button v-for="grade in seniorGrade" :key="grade" :label="grade.gradeName">{{grade.gradeName}}</el-radio-button>
+          </el-radio-group>
+          <el-button type="primary" @click='baseSetting'>切换到基本设置</el-button>
+        </div>
+        <div class="continueBody">
+          <el-table :data="tableData" border >
+            <el-table-column  label="星期" prop="weekName" width='190' align="center">
+            </el-table-column>
+            <el-table-column label="可连堂节次" align="center">
+              <template scope="scope" >
+                <el-checkbox-group v-model="seniorCheckedData"  @change="toCheckSeniorCheckedbox(scope.$index,scope.row)">
+                  <el-checkbox v-for="item in festival" :label="scope.row.weekId+'_'+item.id" :key='item.id'>第{{item.start}}节~第{{item.end}}节</el-checkbox>
+                </el-checkbox-group> 
+              </template>
+            </el-table-column>
+          </el-table>
+          <div class="saveSeniorContinue">
+            <el-button type="primary" style="margin-top:10px;" @click="saveSeniorContinue">确认高级连堂</el-button>
+          </div>
+        </div>
+      </div>
+    </sy-grad-4>    
+
+    <!-- 高级设置弹框 -->
+    <sy-dialog title="高级设置" :visible.sync="dialogAddContinueCourseVisible" :close-on-click-modal="false" position="middle" height="auto" width="70%" slide="fade">
+      <div slot="body" style="height: auto;padding:2em">
+        <div class="continueHeader1">
+          <el-button v-for="grade in grades" :key="grade">{{grade.gradeName}}</el-button>
+        </div>
+        <div class="continueBod">
+          <el-table :data="tableData" border>
+            <el-table-column  label="星期" prop="weekName" width='80' align="center">
+            </el-table-column>
+            <el-table-column label="可连堂节次"  align="center">
+              <template scope="scope">
+                <el-checkbox-group>
+                  <el-checkbox disabled v-for="item in festival" :label="item.id" :key='item'>第{{item.start}}节~第{{item.end}}节</el-checkbox>
+                </el-checkbox-group>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer text-center">
+        <div align="center">
+          <el-button type="primary" @click="addContinueCourse">确定</el-button>
+          <el-button @click="dialogAddContinueCourseVisible = false">取消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+    <!-- 基本设置弹框 -->
+    <sy-dialog title="基本设置" :visible.sync="dialogbaseSettingVisible" :close-on-click-modal="false" position="middle" height="auto" width="70%" slide="fade">
+      <div slot="body" style="height: auto;padding:2em">
+        <div class="continueBod">
+          <el-checkbox-group>
+            <el-checkbox disabled v-for="item in festival" :key='item'>第{{item.start}}节~第{{item.end}}节</el-checkbox>
+          </el-checkbox-group>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer text-center">
+        <div align="center">
+          <el-button type="primary" @click="sureBaseSetting">确定</el-button>
+          <el-button @click="dialogbaseSettingVisible = false">取消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+  </div>
+</template>
+<script>
+  import {initData,baseCourseTime,selectContinuityFestival,getGradeList,setContinuity,saveContinuityFestival,seniorContinuity,saveSeniorData} from './request';
+  import _ from 'lodash';
+  import qs from 'qs';
+  import { Loading } from 'element-ui';
+
+  export default{
+    data(){
+      return {
+        type:'0',        
+        dialogAddContinueCourseVisible:false,
+        dialogbaseSettingVisible:false,
+        solutionId:'',
+        unitId:'',
+        baseCheckedData:[],
+        seniorCheckedData:[],
+        festival:[],
+        grades:[],
+        seniorGrade:[],
+        checkList:[],
+        tableData:[],
+        arrId:[],
+        checkedGrade:[],
+        weekIds:[],
+        saveParams:{}
+      }
+    },
+    created(){
+      this._init();
+      this._getSession() 
+      // 初始化，是基础还是高级设置
+      this.initData();
+      // 查询基本连堂
+      this.toSelectbaseCourseTimeContinuityFestival(this.solutionId);
+      // 查找年级
+      this.toGetGrades();
+      // 查询基础连堂规则
+      this.toSelectContinuity();
+    },
+    methods:{
+      // 初始化数据，拿到unitId
+      _init() {
+        let userMsg = this.$getSess('user');
+        if (userMsg && userMsg.data ) {
+          if (userMsg.data.unitId) {
+            this.unitId = userMsg.data.unitId;
+          }
+        }
+      },
+      _getSession() {
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+      // 查看当前是基础模式还是高级模式
+      initData(){
+        initData({solutionId:this.solutionId}).then((results)=>{
+          if(results && results.code =='ok'){
+            this.type = results.data;    
+          }
+        })
+      },
+      // 查询连堂节次
+      toSelectbaseCourseTimeContinuityFestival(solutionId){
+        baseCourseTime({unitId:this.unitId}).then((results)=>{
+          let arr = [];
+          let arrId = [];
+          let arr2 = [];
+          let weekIds = [];
+          if(results && results.code =='ok'){
+            results.data.forEach((item,index)=>{
+              if(results.data){
+                if(index< results.data.length -1){
+                  arr.push({
+                    id:item.id,
+                    start:item.sort,
+                    end:item.sort + 1
+                  })
+                }
+                arrId.push(item.id);
+              }
+            })
+            let jie = [];
+            for(let i=0;i < results.data[0].weekRModels.length;i++){
+              jie.push(arr);
+            }
+            results.data[0].weekRModels.forEach((item,index)=>{
+              weekIds.push(item.weekId);
+              arr2.push({
+                weekId:item.weekId,
+                weekName:item.weekName,
+                festival:jie[index]
+              })
+            })
+          }
+          this.festival = arr;
+          this.arrId = arrId;
+          this.tableData= arr2;
+          this.weekIds = weekIds;
+        })
+      },
+      // 查询基础中已经被选中的节次
+      toSelectContinuity(){
+        selectContinuityFestival({solutionId:this.solutionId}).then((results)=>{
+          let showItem = []
+          results.data.forEach((item,index)=>{
+            for(let i=0;i<this.arrId.length;i++){
+              if(item.startFestival == this.arrId[i]){
+                showItem.push(this.arrId[i])
+              }
+            }
+          })
+          this.baseCheckedData = [];
+          this.baseCheckedData = showItem;
+        })
+      },
+      // 基本设置多选框更改的时候触发
+      saveAndEditBaseCheck(val){
+        this.baseCheckedData = [];
+        this.baseCheckedData = val;
+      },
+      // 根据方案获取年级
+      toGetGrades(){
+        getGradeList({solutionId:this.solutionId}).then((results)=>{
+          this.grades = results.data;
+          this.seniorGrade = results.data;
+          this.checkedGrade = this.seniorGrade[0].gradeName;
+        })
+      },
+      // 点击高级设置  弹框出现
+      advancedSetting(){
+        this.dialogAddContinueCourseVisible = true;
+        this.toGetGrades();
+      },
+      // 点击高级设置的确定
+      addContinueCourse(){
+        // 发送请求，变为高级设置
+        this.dialogAddContinueCourseVisible = false;
+        let params = {
+          solutionId:this.solutionId,
+          type:1
+        }
+        this.setContinuity(params);
+      },
+      // 设置基本设置或者高级设置
+      setContinuity(params){
+        setContinuity(params).then((results)=>{
+          if(results && results.code =='ok' && results.data =='success'){
+            this.$message({
+              type:'success',
+              message:'切换模式成功'
+            })
+            this.initData();
+          }else{
+            this.$message({
+              type:'error',
+              message:results.fieldErrors
+            })
+          }
+        })
+      },
+      // 点击基础设置
+      baseSetting(){
+        this.dialogbaseSettingVisible = true;
+      },
+      // 点击基本设置弹框中的确定
+      sureBaseSetting(){
+        this.dialogbaseSettingVisible = false;
+        let params = {
+          solutionId:this.solutionId,
+          type:0
+        }
+        this.setContinuity(params);
+      },
+      // 基础设置连堂
+      saveBaseContinue(){
+        let fest = [];
+        this.arrId.forEach((item,index)=>{
+          this.baseCheckedData.forEach((itemx,indexx)=>{
+            if(item == itemx){
+              fest.push({
+                startFestival:this.arrId[index],
+                endFestival:this.arrId[index+1]
+              })
+            }
+          })
+        })
+        let arr = {}
+        for(let i = 0; i < fest.length; i++){
+          arr[`continuityFestivalVMS[${i}].startFestival`] = fest[i][`startFestival`];
+          arr[`continuityFestivalVMS[${i}].endFestival`] = fest[i][`endFestival`];
+        }
+        let params = {
+          solutionId:this.solutionId,
+          ...arr
+        }
+        //创建层罩实例
+        var loading = Loading.service({ fullscreen: true,text:'正在更改，请稍后...' });
+        var vm = this;
+        saveContinuityFestival(params).then((results)=>{
+          if(results && results.code =='ok'){
+            loading.close();
+            vm.$message({type:'success', message:'保存基本连堂成功！'})
+          }else{
+            loading.close();
+            vm.$message({type:'error', message:'保存失败，重新选择！'})
+          }
+        })
+      },
+      // 保存高级设置连堂
+      saveSeniorContinue(){
+        //封装参数
+        this.saveParams.solutionId =  this.solutionId;
+        let params = {
+          continuityFestivalWeekVMS:[],
+          solutionId:this.saveParams.solutionId,
+          gradeId:this.saveParams.gradeId
+        };
+        this.saveParams.continuityFestivalWeekVMS.forEach((item)=>{
+          //内部元素
+          var inner = {
+            continuityFestivalVMS:[],
+            weekId:''
+          };
+          //设定周内具体哪一天
+          inner.weekId = item.weekId;
+          item.continuityFestivalWeekVMS.forEach(function(ele){
+            //设定具体每天的连堂
+            var continueObj = {
+              startFestival:ele[0],
+              endFestival:ele[1]
+            }
+            inner.continuityFestivalVMS.push(continueObj);
+          });
+          params.continuityFestivalWeekVMS.push(inner);
+        });
+        //创建层罩实例
+        var loading = Loading.service({ fullscreen: true,text:'正在更改，请稍后...' });
+        //调用函数完成保存
+        var vm = this;
+        saveSeniorData(params).then(function(){
+          //关闭
+          loading.close();
+          vm.$message({type:'success', message:'更改成功！'})
+        }).catch(function(error){
+          //关闭
+          loading.close();
+          vm.$message({type:'error', message:'更改失败！'})
+        });
+
+      },
+      toCheckSeniorCheckedbox(index,row){
+        // 如果weekId相同 创建一个数组 创建选中项个数组
+        let arr = [];
+        let arrData = [];
+        let sliceArr = [];
+        this.seniorCheckedData.forEach((item,index)=>{
+          arr.push(item.split('_'));
+        })
+        arr.forEach((item,index)=>{
+          for(let i=0;i<this.arrId.length;i++){
+            if(item[1] == this.arrId[i]){
+              item.push(this.arrId[i+1]);
+              let a = _.drop(item,1);
+              arrData.push({
+                weekId: item[0],
+                continuityFestivalVMS:a
+              })
+            }
+          }
+        })
+        let JieArr1 = [];
+        let JieArr2 = [];
+        let JieArr3 = [];
+        let JieArr4 = [];
+        let JieArr5 = [];
+        let JieArr6 = [];
+        let JieArr7 = [];
+        let obj = {
+          continuityFestivalWeekVMS:[]
+        }
+        arrData.forEach((item,index)=>{
+          if(this.weekIds[0] == item.weekId){         
+            JieArr1.push(item.continuityFestivalVMS);
+          }else if(this.weekIds[1] == item.weekId){
+            JieArr2.push(item.continuityFestivalVMS);
+          }else if(this.weekIds[2] == item.weekId){
+            JieArr3.push(item.continuityFestivalVMS);
+          }else if(this.weekIds[3] == item.weekId){
+            JieArr4.push(item.continuityFestivalVMS);
+          }else if(this.weekIds[4] == item.weekId){
+            JieArr5.push(item.continuityFestivalVMS);
+          }else if(this.weekIds[5] == item.weekId){
+            JieArr6.push(item.continuityFestivalVMS);
+          }else if(this.weekIds[6] == item.weekId){
+            JieArr7.push(item.continuityFestivalVMS);
+          }
+        })
+        if(JieArr1.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[0],
+            continuityFestivalWeekVMS:JieArr1
+          })
+        }
+        if(JieArr2.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[1],
+            continuityFestivalWeekVMS:JieArr2
+          })
+        }
+        if(JieArr3.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[2],
+            continuityFestivalWeekVMS:JieArr3
+          })
+        }
+        if(JieArr4.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[3],
+            continuityFestivalWeekVMS:JieArr4
+          })
+        }
+        if(JieArr5.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[4],
+            continuityFestivalWeekVMS:JieArr5
+          })
+        }
+        if(JieArr6.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[5],
+            continuityFestivalWeekVMS:JieArr6
+          })
+        }
+        if(JieArr7.length !==0){
+          obj.continuityFestivalWeekVMS.push({
+            weekId:this.weekIds[6],
+            continuityFestivalWeekVMS:JieArr7
+          })
+        }
+        obj.gradeId = this.saveParams.gradeId;
+        this.saveParams = obj;
+      },
+      // 单击更改年级
+      changeGrade(val){
+        let a = ''
+        this.grades.forEach((item,index)=>{
+          if(val == item.gradeName){
+            a = item.gradeId
+          }
+        })
+        this.saveParams.gradeId = a;
+        // 根据方案Id和年级id查询连堂
+        seniorContinuity({solutionId:this.solutionId,gradeId:this.saveParams.gradeId}).then((results)=>{
+          let label = []
+          results.data.forEach((item,index)=>{
+            for(let i=0;i<this.weekIds.length;i++){
+              if(this.weekIds[i] == item.weekId){
+                item.continuityFestivalVMS.forEach((itemx,indexx)=>{
+                  label.push(this.weekIds[i]+'_'+ itemx.startFestival)
+                })
+              }
+            }
+          })
+          this.seniorCheckedData = label;
+        })
+      }
+    }
+  }
+</script>
+<style scoped>
+  .app-container-box {
+    top:185px;
+    bottom:50px;
+    overflow-y: scroll;
+  }
+  .continueHeader{
+    margin-top:10px;
+  }
+  .continueHeader1{
+    margin-bottom:10px;
+  }
+  b{
+    width: 100px;
+    height: 46px;
+    line-height: 46px;
+    margin-left: 16px;
+    float: left;
+    color: red;
+  }
+  .coursesList:after{
+    content: "";
+    display: block;
+    clear: both;
+    margin-left: 120px
+  }
+  .coursesList > li{
+    float: left;
+    padding: 0 10px;
+    height: 46px;
+    line-height: 46px;
+  }
+  .continueBody{
+    margin:0 100px;
+  }
+  .saveBaseContinue{
+    position: absolute;
+    top: 100px;
+    left: 63%;
+  }
+  .saveSeniorContinue{
+    position: absolute;
+    right: 100px;
+  }
+  ul li{
+    display: inline-block;
+  }
+</style>
+
+
+
+
+
+

@@ -1,0 +1,58 @@
+<template>
+	<div class="sy-app-container">
+    <div class="sy-home-header">
+      <sy-header title="师悦智能排课系统" :versionList="versionList">
+        <span slot="back" title="查看课表" @click="jumpPost"> 我的课表 </span>
+      </sy-header>
+    </div>
+    <div class="sy-home-body">
+      <transition name="fade" mode="out-in" appear>
+        <router-view></router-view>
+      </transition>
+    </div>
+    <div class="sy-home-footer">
+      <foot></foot>
+    </div>
+    
+  </div>
+</template>
+
+<script>
+import foot from '../../../commonPage/footer/footer.vue';
+import SyHeader from '../../../commonPage/header/header.vue';
+import version from '../version.js';
+export default {
+	components: {
+		foot,
+	  SyHeader
+	},
+  name: 'hello',
+  data() {
+    return {
+      versionList: version,
+    }
+  },
+  beforeUpdate() {
+
+  },
+  created() {
+    document.title = '师悦智能排课系统'
+  },
+  methods: {
+      logout() {
+          window.sessionStorage.removeItem('user');
+          window.location.href = window.ShiYue.base + '/api/uaa/oauth/logout';
+      },
+      jumpPost(){
+        this.$router.push('/pk/kb')
+      }
+  },
+  mounted() {
+
+  }  
+}
+</script>
+
+<style scoped>
+	
+</style>

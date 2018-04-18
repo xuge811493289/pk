@@ -1,0 +1,14 @@
+.sy-pk .el-tabs__header {
+    margin-bottom: 0;
+}
+
+.sy-pk-step-box {
+    padding: 0 30px 20px;
+}
+
+.sy-pk-step-container {
+    position: relative;
+    height: 700px;
+    border: 1px solid #ccc;
+    margin: 0 30px;
+}

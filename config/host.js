@@ -1,0 +1,33 @@
+module.exports = [{
+    name: '测试',
+    host: '10.0.0.195',
+    port: '9000'
+}, {
+    name: '开发',
+    host: '10.0.0.11',
+    port: '18900'
+}, {
+    name: 'Say',
+    host: '10.0.0.10',
+    port: '18900'
+}, {
+    name: '欧阳',
+    host: '10.0.0.250',
+    port: '18900'
+}, {
+    name: 'Ray',
+    host: '10.0.0.158',
+    port: '18900'
+}, {
+    name: 'todd',
+    host: '10.0.0.138',
+    port: '18900'
+}, {
+    name: 'tansy',
+    host: '10.0.0.115',
+    port: '18900'
+}, {
+    name: 'duke',
+    host: '10.0.0.229',
+    port: '18900'
+}]

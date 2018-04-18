@@ -1,0 +1,133 @@
+<template>
+	<div class="sy-pk-manager">
+		<div class="top-panel">
+      <a href="/pk/pre/home">排课方案</a> <i class="fa fa-angle-double-right" aria-hidden="true"></i> {{solutionName}}
+		</div>
+		<div class="progress-nav">
+      <el-steps :active="active" :center="center">
+        <el-step title="基础数据">
+          <i class="fa fa-file-text fa-2x" slot='icon' @click="handleClickIcon(1)"></i>
+        </el-step>
+        <el-step title="课程管理">
+          <i class="fa fa-id-card fa-2x" slot='icon' @click="handleClickIcon(2)"></i>
+        </el-step>
+        <el-step title="规则设置">
+          <i class="fa fa-first-order fa-2x" slot='icon' @click="handleClickIcon(3)"></i>
+        </el-step>
+        <el-step title="智能排课">
+          <i class="fa fa-pencil fa-2x" slot="icon" @click="handleClickIcon(4)"></i>
+        </el-step>
+        <el-step title="优化调整">
+          <i class="fa fa-first-order fa-2x" slot="icon" @click="handleClickIcon(5)"></i>
+        </el-step>
+        <el-step title="预览课表">
+          <i class="fa fa-first-order fa-2x" slot="icon" @click="handleClickIcon(6)"></i>
+        </el-step>
+      </el-steps>
+		</div>
+    <div class="content">
+      <router-view></router-view>
+    </div>
+	</div>
+</template>
+<script type="text/javascript">
+  import path from 'path';
+	export default {
+		data(){
+			return {
+				name:'基础数据',
+        active: 6,
+        center:true,
+        stepUrls:['baseData/classes','courseManager/adminCourse','ruleSet/pkTime','courseArranging','optimize','previewSchedule'],
+        solutionName:''
+			}
+		},
+    created:function(){
+      this.solutionName = window.sessionStorage.getItem("solutionName");
+      //默认选中进度条
+      var currentPath = this.$route.path;
+      if(currentPath.includes('baseData')){
+        this.active = 1;
+      } else if(currentPath.includes('courseManager')){
+        this.active = 2;
+      } else if(currentPath.includes('ruleSet')){
+        this.active = 3;
+      } else if(currentPath.includes('courseArranging')){
+        this.active = 4;
+      } else if(currentPath.includes('optimize')){
+        this.active = 5;
+      } else {
+        this.active = 6;
+      }
+    },
+    methods:{
+		  handleClickIcon(index){
+        if(index != 6){
+          this.$notify.info({
+            title: '温馨提示',
+            message: '请耐心等待，手动排课正在开发中！'
+          });
+        }else{
+          this.active = index;
+          this.redirect();
+        }
+      },
+      redirect(){
+        this.$router.push({
+          path: '/pk/pre/manager/previewSchedule',
+          query: this.$route.query
+        });
+      }
+    }
+	}
+</script>
+<style type="text/css">
+  .sy-pk-manager{
+    position: relative;
+    height: 100%;
+    overflow-y: auto;
+  }
+	.sy-pk-manager .top-panel{
+    width:100%;
+		height: 42px;
+    box-sizing: border-box;
+		line-height: 42px;
+		padding: 0 12px;
+		border-bottom: 1px solid #c6c8d4;
+		background-color: #fcfcfc;
+	}
+  .sy-pk-manager .progress-nav{
+    font-size:18px;
+    padding: 9px 5%;
+    border-bottom: 1px solid #ccc;
+  }
+  .sy-pk-manager .content{
+    position: relative;
+  }
+  /*重置进度条导航*/
+  .sy-pk-manager .el-step__head {
+    width:50px;
+    height:50px;
+    line-height:50px;
+    font-size:2em;
+    cursor: pointer;
+  }
+  .sy-pk-manager .el-step__icon {
+    line-height: 50px;
+  }
+  .sy-pk-manager .el-step__line.is-horizontal {
+    top: 25px;
+    left: 50px;
+  }
+  .sy-pk-manager .el-step__icon > * {
+    vertical-align: top;
+  }
+  .sy-pk-manager .fa-2x{
+    font-size:28px;
+  }
+  .top-panel a {
+    text-decoration: none;
+    color: #666;
+  }
+
+</style>

@@ -1,0 +1,1350 @@
+<template>
+	<div class="sy-pk-course-container-box">
+		<sy-grad-4>
+			<div slot="bodyRight">
+				<div class="bodyRight">
+					<span class="sy-pk-right">
+						<el-button  @click="toaddClass">新增</el-button>
+						<el-button v-download="{table:true}" :disabled="tableList.length == 0">导出</el-button>
+					</span>
+          <table class="combinTbl">
+            <thead>
+              <tr>
+                <th>课位名称</th>
+                <th>关联年级</th>
+                <th>上课时间</th>
+                <th>上课选修班</th>
+                <th>教师</th>
+                <th>场地</th>
+                <th>自习学生</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for='mc in tableList'>
+                <!-- 课位名称 -->
+                <td>{{mc.positionName}}</td>
+                <!-- 关联年级 -->
+                <td>
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageGradeRVMS'>
+                      <span>{{mcNs.gradeName}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 上课时间 -->
+                <td>
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageAttendTimeVMS'>
+                      <span>{{mcNs.weekName}}{{mcNs.festivalName}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 上课选修班 -->
+                <td class="innerContainer">
+                  <ul >
+                    <li v-for='mcNs in mc.positionManageClassRVMS'>
+                      <span>{{mcNs.className}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 教师 -->
+                <td class="innerContainer">
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageClassRVMS'>
+                      <span>{{mcNs.teacherNames}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 场地 -->
+                <td class="innerContainer">
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageClassRVMS'>
+                      <span>{{mcNs.placeName}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 自习学生 -->
+                <td>
+                  <el-button type="text" @click="toshowselfStudyClass(mc.id)">{{mc.selfstudyNum}}</el-button>
+                </td>
+                <!-- 操作 -->
+                <td>
+                  <el-button type="text" @click="handleEdit(mc.id)">编辑</el-button>
+                  <el-button type="text" @click="handleDelete(mc.id)">删除</el-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <table class="combinTbl" :data-download-options="'{title:\''+'课位导出表\',fileName:\''+'课位导出表\'}'" style="display:none;">
+            <thead>
+              <tr>
+                <th>课位名称</th>
+                <th>关联年级</th>
+                <th>上课时间</th>
+                <th>上课选修班</th>
+                <th>教师</th>
+                <th>场地</th>
+                <th>自习学生</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for='mc in tableList'>
+                <!-- 课位名称 -->
+                <td>{{mc.positionName}}</td>
+                <!-- 关联年级 -->
+                <td>
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageGradeRVMS'>
+                      <span>{{mcNs.gradeName}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 上课时间 -->
+                <td>
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageAttendTimeVMS'>
+                      <span>{{mcNs.weekName}}{{mcNs.festivalName}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 上课选修班 -->
+                <td class="innerContainer">
+                  <ul >
+                    <li v-for='mcNs in mc.positionManageClassRVMS'>
+                      <span>{{mcNs.className}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 教师 -->
+                <td class="innerContainer">
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageClassRVMS'>
+                      <span>{{mcNs.teacherNames}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 场地 -->
+                <td class="innerContainer">
+                  <ul>
+                    <li v-for='mcNs in mc.positionManageClassRVMS'>
+                      <span>{{mcNs.placeName}}</span>
+                    </li>
+                  </ul>
+                </td>
+                <!-- 自习学生 -->
+                <td>
+                  <el-button type="text" @click="toshowselfStudyClass(mc.id)">{{mc.selfstudyNum}}</el-button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+				</div>
+			</div>
+		</sy-grad-4>
+    
+		<!-- 新增 -->
+		<sy-dialog title="新增课位" :visible.sync="dialogaddClassVisible" :close-on-click-modal="false" position="middle" height="auto" width="400px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-bodyright">
+				  <el-form label-width="110px">
+						<el-form-item label="temp">
+	            <span slot="label">课位名称：</span>
+	            <el-input v-model="addposition.positionName" class="selectBtn-in-dialog" style="width:200px;">请输入课位名称</el-input>
+	          </el-form-item> 
+	          <el-form-item label="temp">
+	            <span slot="label">关联年级：</span>
+	            <el-input v-model="addposition.checkedGrades" class="selectBtn-in-dialog" style="width:200px;" @focus="toaddgrade" placeholder='请选择年级'></el-input>
+	          </el-form-item> 
+	          <el-form-item label="temp">
+	            <span slot="label">上课时间：</span>
+              <el-input v-model="addposition.checkedclasstime" class="selectBtn-in-dialog" style="width:200px;" @focus="tosureclazztime" placeholder='请输入上课时间'></el-input>
+	          </el-form-item> 
+	          <el-form-item label="temp">
+	            <span slot="label">上课选修班：</span>
+              <el-input v-model="addposition.electiveclass" class="selectBtn-in-dialog" style="width:200px;" @focus="toselectclazz" placeholder='请输入上课选修班'></el-input>
+	          </el-form-item> 
+				  </el-form>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer" align="center">
+        <div align="center">
+          <el-button @click="toAddPosition">确 定</el-button>
+          <el-button @click="dialogaddClassVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 输入关联年级-->
+    <sy-dialog title="选择关联年级" :visible.sync="dialogaddGradeVisible" :close-on-click-modal="false" position="middle" height="auto" width="500px" slide="fade">
+    	<div slot="body">
+    		<div class="sy-pk-dialog-margin">
+          <el-checkbox :indeterminate="isIndeterminate" v-model="addposition.checkAll" @change="handleCheckAllChange">全选</el-checkbox>
+          <div style="margin: 15px 0;"></div>
+          <el-checkbox-group v-model="addposition.checkedIds" @change="handleCheckedGradesChange">
+            <el-checkbox v-for="grade in addposition.grades" :label="grade.gradeId" :key="grade">{{grade.gradeName}}</el-checkbox>
+          </el-checkbox-group>
+    		</div>
+    	</div>
+    	<span slot="footer" class="dialog-footer">
+        <div align="center">
+	        <el-button @click="dialogaddGradeVisible = false">取 消</el-button>
+	        <el-button type="primary" @click="toSelectGrade">确 定</el-button>        	
+        </div>
+      </span>
+    </sy-dialog>
+
+		<!-- 上课时间 -->
+		<sy-dialog title="确认上课时间" :visible.sync="dialoclasstimeVisible" :close-on-click-modal="false" position="middle" height="auto" width="700px" slide="fade">
+    	<div slot="body">
+    		<div class="sy-pk-dialog-table">
+          <el-table :data="TableDataclassTime" :stripe="false" :border='true' style="width: 100%" @cell-click="toGetWeekandGradeInfo"> 
+            <el-table-column align="center" label="上课时间">
+              <template scope = "scope">
+                <div>{{scope.row.name}}</div>
+                <div>{{scope.row.begin}}-{{scope.row.end}}</div>
+              </template>
+            </el-table-column>
+            <el-table-column align="center" v-for="week in tablefestival" :key="week" :label="week.weekName"></el-table-column>
+          </el-table>
+    		</div>
+    	</div>
+    	<span slot="footer" class="dialog-footer">
+        <div align="center">
+	        <el-button @click="toCancelClassTime">取 消</el-button>
+	        <el-button type="primary" @click="toSureClassTime">确 定</el-button>        	
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 选择上课选修班 -->
+    <sy-dialog title="选择上课选修班" :visible.sync="dialoelectiveclassVisible" :close-on-click-modal="false" position="middle" height="auto" width="1000px" slide="fade">
+	    <div slot="body">
+	    	<div class="sy-pk-dialog-margin">
+	    		<form action="">
+            <el-select size="small" style="width:130px;margin-right: 10px" placeholder="学年" v-model="selectForm.curyearId" @change="onChangeSelect('year')">
+              <el-option
+                v-for="item in selectForm.currentYear" 
+                :key="item" 
+                :label="item.year" 
+                :value="item.year">
+              </el-option>
+            </el-select>
+            <el-select size="small" style="width:130px;margin-right: 10px" v-model="selectForm.Termval" placeholder="请选择学期" @change="onChangeSelect('term')">
+              <el-option
+                v-for="item in selectForm.termValue" 
+                :key="item.id" 
+                :label="item.name" 
+                :value="item.name">
+              </el-option>
+            </el-select>
+	    			<el-select size="small" style="width:130px;margin-right: 10px" v-model="selectForm.GradeId" placeholder="请选择年级" @change="onChangeSelect('grade')">
+              <el-option v-for="item in selectForm.gradeValue" :key="item.gradeId" :label="item.gradeName" :value="item.gradeId"></el-option> 
+            </el-select>
+            <el-select size="small" style="width:130px;margin-right: 10px" v-model="selectForm.clazzTypeId" placeholder="请选择课程类型" @change="onChangeSelect('course')">
+              <el-option v-for="item in selectForm.clazzTypeValue" :key="item.id" :label="item.name" :value="item.id"> </el-option> 
+            </el-select>
+            <el-select size="small" style="width:130px;margin-right: 10px" v-model="selectForm.clazzPositionId" placeholder="请选择课位">
+              <el-option v-for="item in selectForm.clazzPositionValue" :key="item.id" :label="item.positionName" :value="item.id" @change="onChangeSelect('coursePosition')"> </el-option> 
+            </el-select>
+            <div class="sy-pk-divsearch">
+            	<el-input size="small" placeholder="输入选修班名称、简称" icon="search" v-model="searchelectiveClass" @keyup.enter.native="handleSearchelectiveClass" style="width:auto" :on-icon-click="handleSearchelectiveClass"> </el-input>
+            </div>
+	    		</form>
+	    		<div class="sy-xk-table">
+	    			<el-table :data="selectCourse" border @selection-change="handleSelectionChange">
+              <el-table-column type="selection" ></el-table-column>
+	            <el-table-column align="center" prop="name"  label="选修班名称">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.name}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="简称">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.shortName}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="开设课程名称">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.courseName}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="周课时数">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.weekHour}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="上课节次">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.courseTerm}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="课位">
+	               	<template scope="scope">
+	                 	<span></span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="上课教室">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.classRoomName}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="学生来源">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.gradeNames}}</span>
+	               	</template>
+	            </el-table-column>
+	            <el-table-column align="center" prop="name" label="任课老师">
+	               	<template scope="scope">
+	                 	<span>{{scope.row.courseTeacherNames}}</span>
+	               	</template>
+	            </el-table-column>
+	          </el-table>
+	    		</div>
+	      </div>
+	    </div>
+    	<span slot="footer" class="dialog-footer">
+        <div align="center">
+	        <el-button  type="primary" @click="toSearchelectiveClass">确  定</el-button>
+	        <el-button @click="dialoelectiveclassVisible = false">取  消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 自习学生 -->
+    <sy-dialog title="自习学生" :visible.sync="dialoshowselfStudyVisible" :close-on-click-modal="false" position="middle" height="auto" width="800px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-dialog-table">
+          <el-form>
+            年级：
+              <el-select clearable size="small" style="width:130px;margin-right: 10px" v-model="selfStudy.GradeId" placeholder="请选择年级" @change="toselclazz">
+                <el-option  v-for="item in selfStudy.gradeValue" :key="item.gradeId" :label="item.gradeName" :value="item.gradeId" ></el-option> 
+              </el-select>
+            班级：
+              <el-select clearable size="small" style="width:130px;margin-right: 10px" v-model="selfStudy.classId" placeholder="请选择年级" @change="toSelectSelfStudyInfo">
+                <el-option v-for="item in selfStudy.classValue" :key="item.name" :label="item.name" :value="item.id" ></el-option> 
+              </el-select>
+            <span class="sy-pk-divsearch1">
+              <el-input size="small" placeholder="请输入关键字搜索" icon="search" v-model="searchselfStudyKeyword" @keyup.enter.native="handleSearch" style="width:auto" :on-icon-click="handleSearch"></el-input>
+              <el-button v-download="{
+                 refs:$refs,
+                 tables:'selfStudyTabledata',
+                 fileName:('自习学生名单')
+               }" :disabled="selfStudyTable.length == 0">导出</el-button>
+            </span>
+          </el-form> 
+          <el-table ref="selfStudyTabledata" :data="selfStudyTable" style="margin:10px 0;">
+            <el-table-column align="center" prop="studentName" label="学生姓名"width="180"></el-table-column>
+            <el-table-column align="center" prop="number" label="学号"width="180"></el-table-column>
+            <el-table-column align="center" prop="gradeName" label="年级"></el-table-column>
+            <el-table-column align="center" prop="className" label="班级"></el-table-column>
+            <el-table-column align="center" prop="selfStudytime" label="自习时间"></el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button type="primary" @click="dialoshowselfStudyVisible = false">确 定</el-button>
+          <el-button @click="dialoshowselfStudyVisible = false">取 消</el-button>    
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 编辑课位 -->
+    <sy-dialog title="编辑课位" :visible.sync="dialogEditClassVisible" :close-on-click-modal="false" position="middle" height="auto" width="400px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-bodyright">
+          <el-form label-width="110px">
+            <el-form-item label="temp">
+              <span slot="label">课位名称：</span>
+              <el-input v-model="editposition.positionName" class="selectBtn-in-dialog" style="width:200px;">请输入课位名称</el-input>
+            </el-form-item> 
+            <el-form-item label="temp">
+              <span slot="label">关联年级：</span>
+              <el-input v-model="editposition.checkedGrades" class="selectBtn-in-dialog" style="width:200px;" @focus="toEditgrade" placeholder='请输入年级'></el-input>
+            </el-form-item> 
+            <el-form-item label="temp">
+              <span slot="label">上课时间：</span>
+              <el-input v-model="editposition.classtime" class="selectBtn-in-dialog" style="width:200px;" @focus="toEditsureclazztime" placeholder='请输入上课时间'></el-input>
+            </el-form-item> 
+            <el-form-item label="temp">
+              <span slot="label">上课选修班：</span>
+              <el-input v-model="editposition.electiveclass" class="selectBtn-in-dialog" style="width:200px;" @focus="toEditselectclazz" placeholder='请输入上课选修班'></el-input>
+            </el-form-item> 
+          </el-form>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer" align="center">
+        <div align="center">
+          <el-button @click="toEditPosition">确 定</el-button>
+          <el-button @click="dialogEditClassVisible = false">取 消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 修改关联年级 -->
+    <sy-dialog title="编辑关联年级" :visible.sync="edit_dialogaddGradeVisible" :close-on-click-modal="false" position="middle" height="auto" width="500px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-dialog-margin">
+          <el-checkbox :indeterminate="isIndeterminate" v-model="editposition.checkAll" @change="edit_handleCheckAllChange">全选</el-checkbox>
+          <div style="margin: 15px 0;"></div>
+          <el-checkbox-group v-model="editposition.checkedIds" @change="edit_handleCheckedGradesChange">
+            <el-checkbox v-for="grade in editposition.grades" :label="grade.gradeId" :key="grade">{{grade.gradeName}}</el-checkbox>
+          </el-checkbox-group>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="edit_dialogaddGradeVisible = false">取 消</el-button>
+          <el-button type="primary" @click="edit_toSelectGrade">确 定</el-button>          
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!--修改上课时间 -->
+    <sy-dialog title="编辑上课时间" :visible.sync="edit_dialoclasstimeVisible" :close-on-click-modal="false" position="middle" height="auto" width="700px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-dialog-table">
+          <el-table :data="TableDataclassTime" :stripe="false" :border='true' style="width: 100%" @cell-click="edit_toGetWeekandGradeInfo"> 
+            <el-table-column align="center" label="上课时间">
+              <template scope = "scope">
+                <div>{{scope.row.name}}</div>
+                <div>{{scope.row.begin}}-{{scope.row.end}}</div>
+              </template>
+            </el-table-column>
+            <el-table-column align="center" v-for="week in tablefestival" :key="week" :label="week.weekName"></el-table-column>
+          </el-table>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="edit_dialoclasstimeVisible = false">取 消</el-button>
+          <el-button type="primary" @click="toSureEditClassTime">确 定</el-button>          
+        </div>
+      </span>
+    </sy-dialog>
+
+    <!-- 修改上课选修班 -->
+    <sy-dialog title="编辑上课选修班" :visible.sync="edit_dialoelectiveclassVisible" :close-on-click-modal="false" position="middle" height="auto" width="1000px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-dialog-margin">
+          <form action="">
+            <el-select size="small" style="width:130px;margin-right: 10px;" v-model="edit_selectForm.curyearId" placeholder="2012-2013年" @change="edit_onChangeSelect('year')">
+              <el-option v-for="item in edit_selectForm.currentYear" :key="item" :label="item.year" :value="item.year"> </el-option> 
+            </el-select>
+            <el-select size="small" style="width:130px;margin-right: 10px;" v-model="edit_selectForm.Termval" placeholder="请选择学期" @change="edit_onChangeSelect('term')">
+              <el-option v-for="item in edit_selectForm.termValue" :key="item.id" :label="item.name" :value="item.name"> </el-option> 
+            </el-select>
+            <el-select size="small" style="width:130px;margin-right: 10px;" v-model="edit_selectForm.GradeId" placeholder="请选择年级" @change="edit_onChangeSelect('grade')">
+              <el-option v-for="item in edit_selectForm.gradeValue" :key="item.gradeId" :label="item.gradeName" :value="item.gradeId"></el-option> 
+            </el-select>
+
+            <el-select size="small" style="width:130px;margin-right: 10px;" v-model="edit_selectForm.clazzTypeId" placeholder="请选择课程类型" @change="edit_onChangeSelect('course')">
+              <el-option v-for="item in edit_selectForm.clazzTypeValue" :key="item.id" :label="item.name" :value="item.id"> </el-option> 
+            </el-select>
+
+            <el-select size="small" style="width:130px;margin-right: 10px;" v-model="edit_selectForm.clazzPositionId" placeholder="请选择课位" @change="edit_onChangeSelect('coursePosition')">
+              <el-option v-for="item in edit_selectForm.clazzPositionValue" :key="item.id" :label="item.positionName" :value="item.id"> </el-option> 
+            </el-select>
+            <div class="sy-pk-divsearch">
+              <el-input size="small" placeholder="输入选修班名称、简称" icon="search" v-model="edit_searchelectiveClass" @keyup.enter.native="handleSearchelectiveClass" style="width:auto" :on-icon-click="handleSearchelectiveClass"> </el-input>
+            </div>
+          </form>
+          <div class="sy-xk-table">
+            <el-table :data="edit_selectCourse" border @selection-change="edit_handleSelectionChange">
+              <el-table-column type="selection" ></el-table-column>
+              <el-table-column align="center" prop="name"  label="选修班名称">
+                  <template scope="scope">
+                    <span>{{scope.row.name}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="简称">
+                  <template scope="scope">
+                    <span>{{scope.row.shortName}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="开设课程名称">
+                  <template scope="scope">
+                    <span>{{scope.row.courseName}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="周课时数">
+                  <template scope="scope">
+                    <span>{{scope.row.weekHour}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="上课节次">
+                  <template scope="scope">
+                    <span>{{scope.row.courseTerm}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="课位">
+                  <template scope="scope">
+                    <span></span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="上课教室">
+                  <template scope="scope">
+                    <span>{{scope.row.classRoomName}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="学生来源">
+                  <template scope="scope">
+                    <span>{{scope.row.gradeNames}}</span>
+                  </template>
+              </el-table-column>
+              <el-table-column align="center" prop="name" label="任课老师">
+                  <template scope="scope">
+                    <span>{{scope.row.courseTeacherNames}}</span>
+                  </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button  type="primary" @click="edit_toSearchelectiveClass">确  定</el-button>
+          <el-button @click="edit_dialoelectiveclassVisible = false">取  消</el-button>
+        </div>
+      </span>
+    </sy-dialog>
+	</div>
+</template>
+<script>
+  import {getPositionManageList,getRelatedGrade,getGradeListByUnitId,showTableTime,currentYear,currentTerm,toSelectCourseType,currentCourseByGrade,currentClazzPosition,toGetelClass,getClassList,getFestivalNameById,savePositionManager,deletePositionManager,getSelfStudyStudent,editPositionManager,selectPositionById} from './request';
+  import _ from 'lodash';
+  export default {
+    data() {
+      return {
+        dialogaddClassVisible:false,
+        dialogaddGradeVisible:false,
+        dialoclasstimeVisible:false,
+        dialoelectiveclassVisible:false,
+        dialoshowselfStudyVisible:false,
+        dialogEditClassVisible:false,
+        edit_dialogaddGradeVisible:false,
+        edit_dialoclasstimeVisible:false,
+        edit_dialoelectiveclassVisible:false,
+        solutionId:'',
+        unitId:'',
+        // 首页表格数据
+        tableList:[
+          {
+            id:'',
+            positionName:'',
+            positionManageAttendTimeVMS:[
+              {
+                festivalId:'',
+                festivalName:'',
+                positionManageId:'',
+                weekId:'',
+                weekName:''
+              }
+            ],
+            positionManageClassRVMS:[
+              {
+                classId:'',
+                className:'',
+                classShortName:'',
+                placeName:'',
+                positionManageId:'',
+                teacherNames:''
+              }
+            ],
+            positionManageGradeRVMS:[{
+              getGradeShortName:'',
+              gradeId:'',
+              gradeName:'',
+              positionManageId:''
+            }],
+            selfstudyNum:'',
+            solutionId:''
+          }
+        ],
+        // 新增课位中的数据
+        addposition:{
+          positionName:'',
+          checkedclasstime:'',
+          electiveclass:'',
+          electiveclassIds:[],
+          checkedGrades:'',
+          checkAll: false,
+          checkedIds: [],
+          grades: [],
+          allIds:[],
+          allValues:[],
+        },
+        // 获取第几节课
+        TableDataclassTime:[],
+        // 获取星期几
+        tablefestival:[],
+        // 所有选中的年级集合
+        isIndeterminate: true,
+        // 上课选修班弹框数据
+        selectForm:{
+          curyearId:'',
+          Termval:'',
+          GradeId:'',
+          clazzTypeId:'',
+          clazzPositionId:'',
+          currentYear:[],
+          termValue:[],          
+          gradeValue:[],          
+          clazzTypeValue:[],          
+          clazzPositionValue:[],
+          term:1,
+        },
+        getCourse:{
+          gradeId:'',
+          termValue:'',
+          yearValue:'',
+          unitId:''
+        },
+        selectCourse:[],
+        // 自习学生相关数据
+        selfStudy:{
+          GradeId:'',
+          gradeValue:[],
+          classId:'',
+          classValue:[],
+          positionManageId:''
+        },
+        selfStudytableData:[],
+        searchselfStudyKeyword:'',
+        savePositionManager:{
+          solutionId:'',
+          positionName:'',
+          gradeIds:[],
+          weekVMS:[],
+          elClassIds:[]
+        },
+        searchelectiveClass:'',
+        multipleSelection:'', 
+        // 修改课位
+        editposition:{
+          positionName:'',
+          classtime:'',
+          electiveclass:'',
+          electiveclassIds:[],
+          checkedGrades:'',
+          checkAll: false,
+          checkedIds: [],
+          grades: [],
+          allIds:[],
+          allValues:[],
+        },
+        edit_savePositionManager:{},
+        edit_selectForm:{
+          curyearId:'',
+          Termval:'',
+          GradeId:'',
+          clazzTypeId:'',
+          clazzPositionId:'',
+          currentYear:[],
+          termValue:[],          
+          gradeValue:[],          
+          clazzTypeValue:[],          
+          clazzPositionValue:[],
+          term:1,
+        },
+        edit_getCourse:{
+          gradeId:'',
+          termValue:'',
+          yearValue:'',
+          unitId:''
+        },
+        edit_multipleSelection:'',
+        edit_searchelectiveClass:'',
+        edit_selectCourse:[],
+      };
+    },
+    created(){
+      this._init();
+      this._getSession();
+      this.toGetPositionManagerList();
+      // 根据方案获取年级信息
+      getRelatedGrade({solutionId:this.solutionId}).then((results)=>{
+        if(results && results.code=='ok'){
+          this.addposition.grades = results.data;
+          this.editposition.grades = results.data;
+          this.selectForm.gradeValue = results.data;
+          this.edit_selectForm.gradeValue = results.data;
+          this.selfStudy.gradeValue = results.data;
+        }
+        results.data.forEach((item,index)=>{
+          this.addposition.allIds.push(item.gradeId);
+          this.addposition.allValues.push(item.gradeName);
+          this.editposition.allIds.push(item.gradeId);
+          this.editposition.allValues.push(item.gradeName);
+        })
+      })
+    },  
+    computed:{
+      // 自习学生表格数据
+      selfStudyTable(){
+        let tableData = this.selfStudytableData;
+        if(!this.searchselfStudyKeyword && !this.selfStudy.GradeId){
+          return tableData;
+        }else{
+          if(this.searchselfStudyKeyword){
+            this.selfStudy.GradeId = '';
+            this.selfStudy.classId = '';
+            let key = this.searchselfStudyKeyword; 
+            let array = tableData.filter(function(item){
+              if(item.className.indexOf(key) != -1 || item.gradeName.indexOf(key) != -1 || item.number.indexOf(key) != -1 || item.selfStudytime.indexOf(key) != -1 || item.studentName.indexOf(key) != -1){
+                return item;
+              }
+            })
+            return array;
+          }
+          if(this.selfStudy.GradeId){
+            // 遍历表格所有数据，将联动后改年级的课程筛选出来
+            let grade = _.find(this.selfStudy.gradeValue,(o)=>{
+              return o.gradeId == this.selfStudy.GradeId;
+            })
+            let clazz = _.find(this.selfStudy.classValue,(o)=>{
+              return o.id == this.selfStudy.classId;
+            })
+            if(this.selfStudy.classId){
+              let array = tableData.filter(function(item){
+                if(item.gradeName.indexOf(grade.gradeName) != -1 && item.className.indexOf(clazz.name) != -1){
+                  return item;
+                }
+              })
+              return array;
+            }else{
+              let array = tableData.filter(function(item){
+                if(item.gradeName.indexOf(grade.gradeName) != -1){
+                  return item;
+                }
+              })
+              return array;
+            }
+          }       
+        }
+      }
+    },
+    methods: {
+      _init() {
+        let userMsg = this.$getSess('user');
+        if (userMsg && userMsg.data ) {
+          if (userMsg.data.unitId) {
+            this.unitId = userMsg.data.unitId;
+          }
+        }
+      },
+      // 获取方案id
+      _getSession() {
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+      // 根据方案id获取页面数据
+      toGetPositionManagerList(){
+        // 根据方案id获取列表信息
+        getPositionManageList(this.solutionId).then((results)=>{
+          if(results && results.code =='ok'){
+            this.tableList = results.data
+          }
+        })
+      },
+      // 点击新增课位
+      toaddClass(){
+        // 点击新增清空数据
+        this.addposition.positionName = '';
+        this.addposition.checkedGrades = '';
+        this.addposition.checkedclasstime = '';
+        this.addposition.electiveclass = '';
+        // 弹框中之前绑定的值全部取消
+        this.addposition.checkedIds = [];
+        this.dialogaddClassVisible = true;
+        // 清空上课时间
+        this.savePositionManager.weekVMS = [];
+        //初始化上课时间
+        $(".sy-pk-dialog-table .is-center").css("background-color","");
+        // 初始化上课选修班
+        this.selectForm.curyearId = '';
+        this.selectForm.Termval = '';
+        this.selectForm.GradeId = '';
+        this.selectForm.clazzTypeId = '';
+        this.selectForm.clazzPositionId = '';
+        this.selectCourse = [];
+      },
+      // 年级全选
+      handleCheckAllChange(val) {
+        if(this.addposition.checkAll){
+          this.addposition.checkedIds = this.addposition.allIds;
+          this.addposition.checkedGrades = ''+this.addposition.allValues;
+        }else{
+          this.addposition.checkedIds = []
+          this.addposition.checkedGrades = ''
+        }
+        this.isIndeterminate = false;
+      },
+      // 选择部分年级
+      handleCheckedGradesChange(value) {
+        this.addposition.checkedIds = value;
+        let arr = [];
+        _.forEach(this.addposition.grades,(item,index)=>{
+          for(let i=0;i<value.length;i++){
+            if(item.gradeId == value[i]){
+              arr.push(item.gradeName);
+            }
+          }
+        })
+        this.addposition.checkedGrades =''+arr;
+        let checkedCount = value.length;
+        this.addposition.checkAll = checkedCount === this.addposition.grades.length;
+        this.isIndeterminate = checkedCount > 0 && checkedCount < this.addposition.grades.length;
+        this.savePositionManager.gradeIds = this.addposition.checkedIds;
+      },
+      // 点击选择关联年级的弹框中的确定
+      toSelectGrade(){
+        this.dialogaddGradeVisible = false;
+      },
+      // 新增年级
+      toaddgrade(){
+        this.dialogaddGradeVisible = true;
+      },
+      // 上课时间
+      tosureclazztime(){
+        this.dialoclasstimeVisible = true;
+        showTableTime(this.unitId).then((results) =>{
+          if(results.code =='ok'){
+            this.TableDataclassTime = results.data;
+            this.tablefestival = results.data[0].weekRModels;
+          }
+        })
+      },
+      // 点击获取时间的单元格
+      toGetWeekandGradeInfo(row,col,cell,event){
+        this.addposition.checkedclasstime = '';
+        // 判断当前的css样式是
+        if($(cell).attr("selfAttr") == undefined && col.label != "上课时间"){
+          $(cell).css("background-color","blue");
+          $(cell).attr("selfAttr",row.id);
+          // 获取当前单元格的信息
+          row.weekRModels.forEach((item)=>{
+            if(col.label == item.weekName){
+              this.savePositionManager.weekVMS.push({
+                weekId:item.weekId,
+                weekName:item.weekName,
+                festivalId:row.id,
+                festivalName:row.name
+              })
+            }
+          })
+        }else if($(cell).attr("selfAttr") != undefined && col.label != "上课时间"){
+          $(cell).css("background-color","");
+          $(cell).removeAttr("selfAttr");
+          // 去除当前单元格信息
+          _.remove(this.savePositionManager.weekVMS, function(n){
+            return n.festivalName == row.name;
+          });
+        }      
+      },
+      // 确认上课时间->确定
+      toSureClassTime(){
+        // 获取输入框中绑定相应的值
+        let checkedclasstime = [];
+        this.savePositionManager.weekVMS.forEach((item)=>{
+          checkedclasstime.push(item.weekName + item.festivalName)
+        })
+        this.addposition.checkedclasstime = checkedclasstime.toString();
+        // 弹框取消
+        this.dialoclasstimeVisible = false;
+      },
+      // 取消上课时间
+      toCancelClassTime(){
+        this.dialoclasstimeVisible = false;
+        //初始化上课时间
+        // $(".sy-pk-dialog-table .is-center").css("background-color","");
+      },
+      // 上课选修班
+      toselectclazz(){
+        this.dialoelectiveclassVisible = true;
+        if(this.unitId){
+          // 获取当前年份
+          currentYear(this.unitId).then((results)=>{
+            this.selectForm.currentYear = [results.data];
+          })
+          // 获取当前课程类型
+          toSelectCourseType(this.unitId).then((results)=>{
+            this.selectForm.clazzTypeValue = results.data;
+          })
+        }
+      },
+      onChangeSelect(value){
+        if(value=='year'){
+          // 获取当前学期
+          if(this.selectForm.curyearId){
+            currentTerm(this.unitId,this.selectForm.curyearId).then((results)=>{
+              if(results && results.code=='ok'){
+                this.selectForm.termValue = results.data;
+              }
+            })
+          }
+        }else if(value=='term'){
+          if(this.selectForm.Termval == "第一学期"){
+            this.selectForm.term = 1
+          }else{
+            this.selectForm.term = 2
+          }
+        }else if(value=='grade'){
+          this.getCourse.termValue = this.selectForm.Termval;
+        }else if(value=='course'){
+
+        }else if(value=='coursePosition'){
+
+        }
+        console.log(this.selectForm.term)
+        // 判断学年数据是否存在
+        if(this.selectForm.curyearId &&  this.selectForm.term){
+          // 查询选修班
+          let params = {
+            yearValue:this.selectForm.curyearId,
+            termValue:this.selectForm.term,
+            typeId:'',
+            gradeId:'',
+            keyword:'',
+            page:1,
+            pageSize:30,
+            unitId:this.unitId
+          }
+          // 获取选修班课程数据
+          toGetelClass(params).then((results)=>{
+            if(results && results.code =='ok' && results.data!=null && results.data.list.length != 0){
+              this.selectCourse = results.data.list;
+            }
+          })
+        }
+      },
+      // 获取选修班的value
+      handleSelectionChange(val){
+        this.multipleSelection = val; 
+      },
+      toSearchelectiveClass(){
+        let arrName=[];
+        for(let i=0;i<this.multipleSelection.length;i++){
+          this.addposition.electiveclassIds.push(this.multipleSelection[i].id);
+          arrName.push(this.multipleSelection[i].name);
+        }
+        this.addposition.electiveclass = ''+arrName;
+        this.dialoelectiveclassVisible = false;
+        this.savePositionManager.elClassIds = this.addposition.electiveclassIds;
+      },
+      toAddPosition(){  
+        this.savePositionManager.solutionId = this.solutionId;
+        this.savePositionManager.positionName = this.addposition.positionName;
+        this.savePositionManager.gradeIds = this.addposition.checkedIds;
+        savePositionManager(this.savePositionManager).then((results)=>{
+          if(results && results.code =='ok'){
+            this.$notify({title: '成功', message:"保存成功！", type: 'success'});
+            this.toGetPositionManagerList();
+            this.dialogaddClassVisible = false;
+          }
+        })
+      },
+      // 点击查看自习学生
+      toshowselfStudyClass(id){
+        // this.selfstudyNu
+        this.selfStudy.GradeId = '';
+        this.selfStudy.classId = '';
+        this.dialoshowselfStudyVisible = true;
+        this.selfStudy.positionManageId = '';
+        this.selfStudy.positionManageId = id;
+        // 查找所有自习学生信息
+        getSelfStudyStudent(this.selfStudy.positionManageId).then((results)=>{
+          let selfStudytime = [];
+          if(results && results.code == 'ok'){
+            for(let i=0;i<results.data.length;i++){
+              results.data[i].weekVMS.forEach((item,index)=>{
+                selfStudytime.push(item.weekName+':'+item.festivalName+',');
+              })
+              this.selfStudytableData.push({
+                studentName:results.data[i].studentName,
+                number:results.data[i].number,
+                gradeName:results.data[i].gradeName,
+                className:results.data[i].className,
+                selfStudytime:selfStudytime[i]
+              })
+            }
+          }
+        })
+      },
+      // 根据年级选择班级
+      toselclazz(gradeId){
+        // 年级改变清空班级
+        this.selfStudy.classId = '';
+        let params = {
+          gradeId:gradeId
+        }
+        if(gradeId){
+          getClassList(params).then((results)=>{
+            this.selfStudy.classValue = results.data;
+          })
+        }
+      },
+      // 搜索自习学生
+      handleSearch(){
+        this.searchelectiveClass = this.searchelectiveClass.trim();
+      },
+      // 所有自习学生信息
+      toSelectSelfStudyInfo(){
+      },
+      // 搜索上课选修班
+      handleSearchelectiveClass(){
+
+      },
+      // 编辑课位
+      handleEdit(id){
+        // 通过id查找这条课位消息
+        selectPositionById(id).then((results)=>{
+          if(results && results.code =='ok'){
+            // 编辑弹框课位名称展示
+            this.editposition.positionName = results.data.positionName;
+            // 编辑弹框年级展示以及绑定的ids
+            let checkedGrades = [];
+            let checkedGradeIds = [];
+            results.data.positionManageGradeRVMS.forEach((item)=>{
+              checkedGradeIds.push(item.gradeId);
+              checkedGrades.push(item.gradeName);
+            })
+            this.editposition.checkedIds = checkedGradeIds;
+            this.editposition.checkedGrades = checkedGrades.toString();
+            // 编辑弹框中的上课时间
+            let classtime = [];
+            let weekVMS = [];
+            results.data.positionManageAttendTimeVMS.forEach((item)=>{
+              classtime.push(item.weekName+item.festivalName)
+              weekVMS.push({
+                weekId:item.weekId,
+                weekName:item.weekName,
+                festivalId:item.festivalId,
+                festivalName:item.festivalName
+              })
+            })
+            this.editposition.classtime = classtime.toString();
+            // 编辑弹框中的上课选修班
+            let electiveclass = [];
+            let elClassIds = [];
+            let positionManageId = ''
+            results.data.positionManageClassRVMS.forEach((item)=>{
+              positionManageId = item.positionManageId
+              electiveclass.push(item.className);
+              elClassIds.push(item.classId);
+            })
+            this.editposition.electiveclass = electiveclass.toString();
+            // 将当前信息保存，如果不进行修改就取现在的值
+            this.edit_savePositionManager.weekVMS = weekVMS;
+            this.edit_savePositionManager.gradeIds = checkedGradeIds;
+            this.edit_savePositionManager.elClassIds = elClassIds;
+            this.edit_savePositionManager.positionManageId = positionManageId;
+            this.edit_savePositionManager.positionName = results.data.positionName;
+          }
+          this.dialogEditClassVisible = true;
+        })
+        //初始化上课时间
+        $(".sy-pk-dialog-table .is-center").css("background-color","");
+      },
+      // 修改课位年级
+      toEditgrade(){
+        this.edit_dialogaddGradeVisible = true;
+      },
+      // 编辑年级全选
+      edit_handleCheckAllChange(val) {
+        if(this.editposition.checkAll){
+          this.editposition.checkedIds = this.addposition.allIds;
+          this.editposition.checkedGrades = ''+this.addposition.allValues;
+          this.edit_savePositionManager.gradeIds = ''+this.addposition.allValues;
+        }else{
+          this.editposition.checkedIds = []
+          this.editposition.checkedGrades = ''
+          this.edit_savePositionManager.gradeIds = '';
+        }
+        this.isIndeterminate = false;
+      },
+      // 编辑选择部分年级
+      edit_handleCheckedGradesChange(value) {
+        this.editposition.checkedIds = value;
+        let arr = [];
+        _.forEach(this.editposition.grades,(item,index)=>{
+          for(let i=0;i<value.length;i++){
+            if(item.gradeId == value[i]){
+              arr.push(item.gradeName);
+            }
+          }
+        })
+        this.editposition.checkedGrades =''+arr;
+        let checkedCount = value.length;
+        this.editposition.checkAll = checkedCount === this.editposition.grades.length;
+        this.isIndeterminate = checkedCount > 0 && checkedCount < this.editposition.grades.length;
+        this.edit_savePositionManager.gradeIds = this.editposition.checkedIds;
+      },
+      // 修改年级
+      edit_toSelectGrade(){
+        this.edit_dialogaddGradeVisible = false;
+      },
+      // 修改时间
+      edit_toGetWeekandGradeInfo(row,col,cell,event){
+        this.editposition.classtime = '';
+        // 判断当前的css样式是
+        if($(cell).attr("selfAttr") == undefined && col.label != "上课时间"){
+          $(cell).css("background-color","blue");
+          $(cell).attr("selfAttr",row.id)
+          // 获取当前单元格的信息
+          row.weekRModels.forEach((item)=>{
+            if(col.label == item.weekName){
+              this.edit_savePositionManager.weekVMS.push({
+                weekId:item.weekId,
+                weekName:item.weekName,
+                festivalId:row.id,
+                festivalName:row.name
+              })
+            }
+          })
+        }else if($(cell).attr("selfAttr") != undefined && col.label != "上课时间"){
+          $(cell).css("background-color","");
+          $(cell).removeAttr("selfAttr");
+          // 去除取消单元格的信息
+          _.remove(this.edit_savePositionManager.weekVMS, function(n) {
+            return n.festivalName == row.name;
+          });
+        }     
+      },
+      // 鼠标聚焦 获取表格数据
+      toEditsureclazztime(){
+        this.edit_dialoclasstimeVisible = true;
+        this.edit_savePositionManager.weekVMS = [];
+        showTableTime(this.unitId).then((results) =>{
+          if(results.code =='ok'){
+            this.TableDataclassTime  = results.data;
+            this.tablefestival = results.data[0].weekRModels;
+          }
+        })
+      },
+      // 确认修改时间
+      toSureEditClassTime(){
+        this.edit_dialoclasstimeVisible = false;
+        // 获取input框中的信息
+        // 获取输入框中绑定相应的值
+        let checkedclasstime = [];
+        this.edit_savePositionManager.weekVMS.forEach((item)=>{
+          checkedclasstime.push(item.weekName+item.festivalName)
+        })
+        this.editposition.classtime = checkedclasstime.toString();     
+      },
+
+      // 点击修改上课选修班
+      toEditselectclazz(){
+        this.edit_dialoelectiveclassVisible = true;
+        if(this.unitId){
+          // 获取当前年份
+          currentYear(this.unitId).then((results)=>{
+            this.edit_selectForm.currentYear = [results.data];
+          })
+          // 获取当前课程类型
+          toSelectCourseType(this.unitId).then((results)=>{
+            this.edit_selectForm.clazzTypeValue = results.data;
+          })
+        }
+      },
+      // 修改上课选修班
+      edit_onChangeSelect(value){
+        if(value=='year'){
+          // 获取当前学期
+          if(this.edit_selectForm.curyearId){
+            currentTerm(this.unitId,this.edit_selectForm.curyearId).then((results)=>{
+              if(results && results.code=='ok'){
+                this.edit_selectForm.termValue = results.data;
+              }
+            })
+          }
+        }else if(value=='term'){
+          if(this.edit_selectForm.Termval == "第一学期"){
+            this.edit_selectForm.term = 1
+          }else{
+            this.edit_selectForm.term = 2
+          }
+        }else if(value=='grade'){
+          this.edit_getCourse.termValue = this.edit_selectForm.Termval;
+        }else if(value=='course'){
+
+        }else if(value=='coursePosition'){
+
+        }
+        // 判断学年数据是否存在
+        if(this.edit_selectForm.curyearId && this.edit_selectForm.term){
+          // 查询选修班
+          let params = {
+            yearValue:this.edit_selectForm.curyearId,
+            termValue:this.edit_selectForm.term,
+            typeId:'',
+            gradeId:'',
+            keyword:'',
+            page:1,
+            pageSize:30,
+            unitId:this.unitId
+          }
+          toGetelClass(params).then((results)=>{
+            if(results && results.code =='ok' && results.data!=null && results.data.list.length != 0){
+              this.edit_selectCourse = results.data.list;
+            }
+          })
+        }
+      },
+      // 选择课位
+      edit_toGetClazzPosition(){
+        currentClazzPosition(this.solutionId).then((results)=>{
+          this.edit_selectForm.clazzPositionValue = results.data;
+          let term = ''
+          if(this.edit_selectForm.Termval == "第一学期"){
+            term = 1
+          }else{
+            term = 2
+          }
+          // 查询选修班
+          let params = {
+            yearValue:this.edit_selectForm.curyearId,
+            termValue:term,
+            typeId:'',
+            gradeId:'',
+            keyword:'',
+            page:1,
+            pageSize:30,
+            unitId:this.unitId
+          }
+          toGetelClass(params).then((results)=>{
+            this.edit_selectCourse = results.data.list;
+          })
+        })
+      },
+      // 获取选修班的value
+      edit_handleSelectionChange(val){
+        this.edit_multipleSelection = val; 
+      },
+      edit_toSearchelectiveClass(){
+        let arrName=[];
+        this.editposition.electiveclassIds = [];
+        for(let i=0;i<this.edit_multipleSelection.length;i++){
+          this.editposition.electiveclassIds.push(this.edit_multipleSelection[i].id);
+          arrName.push(this.edit_multipleSelection[i].name);
+        }
+        this.editposition.electiveclass = ''+arrName;
+        this.edit_dialoelectiveclassVisible = false;
+        this.edit_savePositionManager.elClassIds = [];
+        this.edit_savePositionManager.elClassIds = this.editposition.electiveclassIds;
+      },
+      // 点击确定，确认修改
+      toEditPosition(){
+        this.edit_savePositionManager.positionName = this.editposition.positionName;
+        editPositionManager(this.edit_savePositionManager).then((results)=>{
+         if(results && results.code =='ok'){
+            this.$notify({title:'成功', type:'success', message:"修改成功"})
+            this.dialogEditClassVisible = false;
+            this.toGetPositionManagerList();
+          }
+        })
+      },
+       // 删除课位
+      handleDelete(id) {
+        this.$confirm('删除后无法恢复, 是否确定操作?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          deletePositionManager({positionManageId:id}).then((results)=>{
+            if(results && results.code =='ok'){
+              this.$notify({title:'成功', type:'success', message:"删除成功！"})
+            }
+            this.toGetPositionManagerList();
+          })
+        }).catch(() => {
+        });
+      },
+    }
+  };
+</script>
+<style scoped>
+	.sy-pk-course-container-box{
+    position: relative;
+    height: 100%;;
+  }
+  .bodyRight{
+    width:100%;
+    position: absolute;
+    right:0;
+    left:0;
+    top:0px;
+    overflow: scroll;
+    padding: 0 20px;
+  }
+  .sy-pk-right{
+  	float: right;
+  	margin:10px;
+  }
+  .sy-pk-bodyright{
+		margin:10px;
+  }
+  .sy-pk-dialog-margin{
+  	margin:20px 0 20px 20px;
+  }
+  .sy-pk-dialog-table{
+    margin:20px 20px 20px 20px;
+  }
+  .sy-pk-divsearch{
+    width: 200px;
+    margin: 10px auto;
+  }
+	.sy-pk-search{
+		text-align:center;
+		display: inline-block;
+		width:60px;
+		height:28px;
+		color:white;
+		background-color: rgb(25,158,216);
+	}
+	.sy-xk-table{
+		margin-right:10px;
+	}
+  /*列表表格样式 */
+  .combinTbl,.innerTbl {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .combinTbl thead{
+    background-color: rgb(238, 239, 246);
+  }
+  .combinTbl thead th {
+    height: 3em;
+  }
+  .combinTbl th,.combinTbl td {
+    border: 1px solid #dfe6ec;
+    height: 3em;
+    text-align: center;
+  }
+  .bodyRight .combinTbl tr:hover{
+     background-color: rgb(238, 239, 246);
+  }
+  .combinTbl td a {
+    text-decoration: none;
+  }
+  .innerContainer {
+    padding-left: 0;
+    padding-right: 0;
+  }
+  .innerContainer > ul > li {
+    border-bottom: 1px solid #dfe6ec;
+    border-left:none;
+    border-right:none;
+    border-top:none;
+    height: 3em;
+    line-height: 3em;
+  }
+  .innerContainer > ul > li:last-child {
+    border-bottom: none;
+  }
+</style>
+

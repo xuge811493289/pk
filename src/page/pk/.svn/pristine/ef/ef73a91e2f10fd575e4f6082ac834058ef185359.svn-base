@@ -1,0 +1,188 @@
+<template>
+	<div class="sy-pk-courseArranging">
+		<div class="sy-pk-step-container sy-theme-tableBorder">
+			<el-row class="sy-pk-courseArranging_head">
+				<el-col class="sy-pk-courseArranging-col" :span="6">
+					<div class="sy-pk-courseArranging-tab"><b>排课对象</b></div>
+					<div style="line-height:40px;padding-left: 30px;">
+						<el-checkbox v-model="onlyCourse">只排指定的科目</el-checkbox>
+					</div>
+					<div class="sy-pk-courseArranging-letf-body">
+						<div style="height:35%;padding-bottom:10px;">
+							<div class="sy-pk_border sy-pk_bg_fff" style="height:100%;overflow-y:auto;padding-left: 10px;">
+								<el-tree :data="data" style="border:0;" show-checkbox :render-content="renderContent" :default-expand-all="false" node-key="id" ref="tree"
+									highlight-current :props="defaultProps">
+								</el-tree>
+							</div>
+						</div>
+						<div class="sy-pk_border sy-pk_bg_fff" style="height:65%;padding-left: 10px;">
+							<el-tree :data="classTreeData" style="border:0;" :render-content="renderContent" show-checkbox default-expand-all node-key="id" ref="tree"
+								highlight-current :props="defaultProps">
+							</el-tree>
+						</div>
+					</div>
+				</el-col>
+				<el-col class="sy-pk-courseArranging-col" :span="18">
+					<div class="sy-pk-courseArranging-tab"><b>排课选项</b></div>
+					<div class="sy-pk_noborder" style="height:120px;padding-left: 44px;">
+						<div>
+							<el-radio class="radio" v-model="removeRadio" label="1">清除当前课表，从新排课</el-radio>
+							<el-button :disabled="removeRadio == '1'" style="margin-left: 50px;">清除课表</el-button>
+						</div>
+						<div>
+							<el-radio class="radio" v-model="removeRadio" label="2">优化课表-优先保证已排课节的稳定</el-radio>
+						</div>
+						<div>
+							<el-checkbox v-model="goodCourse">持续排课/优化，直到人工停止</el-checkbox>
+						</div>
+					</div>
+					<div class="sy-pk-courseArranging-tab"><b>操作</b></div>
+					<div class="sy-pk_noborder" style="height:50px;line-height: 60px;padding-left: 75px;">
+						<el-button :disabled="isOpenPk" @click="isOpenPk = !isOpenPk">自动排课</el-button> 
+						<el-button :disabled="!isOpenPk" @click="isOpenPk = !isOpenPk">停止</el-button>
+					</div>
+					<div class="sy-pk-courseArranging-tab"><b>信息</b></div>
+					<div style="line-height:40px;padding-left: 0px;">
+						<el-checkbox v-model="showAllMsg">显示全部信息</el-checkbox>
+					</div>
+					<div class="sy-pk-courseArranging-right-body sy-pk_border">
+						
+					</div>
+				</el-col>
+			</el-row>
+			<div class="sy-pk-courseArranging_body">
+				<el-button :disabled="isStart" @click="isStart = !isStart">开始</el-button> 
+				<el-button :disabled="!isStart" @click="isStart = !isStart">停止</el-button>
+				<el-button>保存</el-button>
+			</div>
+			
+		</div>
+		<div class="center" style="padding: 10px;">
+			<el-button type="primary" @click="prev">上一步</el-button>
+			<el-button type="primary" @click="next">下一步</el-button>
+		</div>
+	</div>
+</template>
+<script type="text/javascript">
+	export default {
+		data(){
+			return {
+				data: [
+					{ id: 1, label: '周一下午', children: [{}] }, 
+					{ id: 2, label: '周一下午', children: [{}] }, 
+					{ id: 3, label: '周一下午', children: [{}] }, 
+					{ id: 4, label: '周一下午', children: [{}] }, 
+					{ id: 5, label: '周一下午', children: [{}] }, 
+					{ id: 6, label: '周一下午', children: [{}] }
+				],
+				classTreeData: [
+					{ id: 1, label: '班级', children: [
+						{ id: 2, label: '预备', children: [] }, 
+						{ id: 3, label: '初中一年级', children: [] }, 
+						{ id: 4, label: '初中一年级', children: [] }, 
+						{ id: 5, label: '初中一年级', children: [] }, 
+						{ id: 6, label: '初中一年级', children: [] }, 
+						{ id: 7, label: '初中一年级', children: [] }, 
+						{ id: 8, label: '初中一年级', children: [] }, 
+						{ id: 9, label: '初中一年级', children: [] }
+					] }, 
+					
+				],
+				defaultProps: {
+					children: 'children',
+          			label: 'label'
+				},
+				isStart: false, // 开始 / 停止
+				showAllMsg: false, // 显示全部信息
+				goodCourse: false, // 持续排课/优化，知道人工停止
+				removeRadio: '1', // 清除当前课表，从新排课
+				isOpenPk: false, // 开始自动排课
+				onlyCourse: false, // 只排指定的科目
+				name:'智能排课',
+				activeName:'classes'
+			}
+		},
+		methods:{
+			renderContent(h, { node, data, store }){
+				// console.log(store);
+				return (
+					<span>
+						<span>
+							<i style={{ display: node.level != 1 ? 'none' : '', fontSize: '16px',position: 'relative', top: '2px' }} 
+								class={{ fa: true, 'fa-folder-o': !node.expanded, 'fa-folder-open-o': node.expanded }} aria-hidden="true"></i>
+							<span> {node.label}</span>
+						</span>
+					</span>
+				)
+			}
+		}
+	}
+</script>
+<style scoped>
+.sy-pk_border{
+	border: 1px solid #ccc;
+}
+.sy-pk_bg_fff{
+	background-color: #fff;
+}
+.sy-pk_noborder{
+	line-height: 42px;
+}
+.sy-pk-courseArranging_head{
+	width: 100%;
+	box-sizing: border-box;
+	overflow-y: auto;
+}
+.sy-pk-courseArranging_body{
+	width: 100%;
+	box-sizing: border-box;
+	height: 48px;
+	line-height: 48px;
+	padding: 0 10px;
+	text-align: right;
+}
+.sy-pk-courseArranging {
+	padding: 20px 0;
+}
+.sy-pk-courseArranging div {
+	box-sizing: border-box;
+}
+.sy-pk-courseArranging-col{
+	position: relative;
+	height: 100%;
+	min-height: 650px;
+	padding: 0 10px;
+	box-sizing: border-box;
+}
+.sy-pk-courseArranging-tab{
+	font-size: 14px;
+	box-sizing: border-box;
+	border-bottom: 1px solid #ccc;
+	height: 40px;
+	line-height: 39px;
+}
+.sy-pk-courseArranging-tab>b{
+	display: inline-block;
+	width: 86px;
+	text-align: center;
+	border-bottom: 2px solid #000;
+	padding: 0 15px;
+	position: relative;
+	top: -1px;
+}
+.sy-pk-courseArranging-letf-body{
+	position: absolute;
+	top: 80px;
+	bottom: 0;
+	left: 10px;
+	right: 10px;
+}
+.sy-pk-courseArranging-right-body{
+	position: absolute;
+	top: 330px;
+	bottom: 0;
+	left: 10px;
+	right: 10px;
+	background-color: #fff;
+}
+</style>

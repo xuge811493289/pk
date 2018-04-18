@@ -1,0 +1,104 @@
+<template>
+  <div class="courses">
+    <div class="tabs">
+      <el-tabs v-model="activeName" @tab-click="handleClick">
+        <el-tab-pane label="行政班课程" name="adminCourse"></el-tab-pane>
+        <el-tab-pane label="选修班课程" name="electiveCourse"></el-tab-pane>
+        <el-tab-pane label="合班分层课" name="combinationCourse"></el-tab-pane>
+        <el-tab-pane label="单双周课" name="oddevenCourse"></el-tab-pane>
+        <el-tab-pane label="固定课" name="fixedCourse"></el-tab-pane>
+      </el-tabs>
+    </div>
+    <div class="coursesContent">
+      <router-view></router-view>
+    </div>
+    <div class="nextStep">
+      <el-button type="primary" @click="prev">上一步</el-button>
+      <el-button type="primary" @click="next">下一步</el-button>
+    </div>
+  </div>
+</template>
+<script type="text/javascript">
+  import path from 'path';
+  export default {
+    data(){
+      return {
+        name:'课程管理',
+        activeName:'adminCourse',
+        stepUrls:['adminCourse','electiveCourse','combinationCourse','oddevenCourse','fixedCourse'],
+        active:1
+      }
+    },
+    methods:{
+      handleClick() {
+        switch (this.activeName){
+          case 'adminCourse':
+            this.active = 1;
+            this.$router.push({
+              path:path.join('/pk/pre/manager/courseManager',this.stepUrls[this.active-1]),
+              query: this.$route.query
+            });
+            break;
+          case 'electiveCourse':
+            this.active = 2;
+            this.$router.push({
+              path:'/pk/pre/manager/courseManager/electiveCourse/coursePosition',
+              query: this.$route.query
+            });
+            break;
+          case 'combinationCourse':
+            this.active = 3;
+            this.$router.push({
+              path:path.join('/pk/pre/manager/courseManager',this.stepUrls[this.active-1]),
+              query: this.$route.query
+            });
+            break;
+          case 'oddevenCourse':
+            this.active = 4;
+            this.$router.push({
+              path:path.join('/pk/pre/manager/courseManager',this.stepUrls[this.active-1]),
+              query: this.$route.query
+            });
+            break;
+          case 'fixedCourse':
+            this.active = 5;
+            this.$router.push({
+              path:path.join('/pk/pre/manager/courseManager',this.stepUrls[this.active-1]),
+              query: this.$route.query
+            });
+            break;
+        }
+        
+      },
+      //下一步
+      next() {
+        if(this.active >= 1 && this.active < 5){
+          this.active ++;
+          this.activeName = this.stepUrls[this.active-1];
+          this.handleClick();
+        }else if(this.active ==5){
+          this.$router.push({path: "/pk/pre/manager/ruleSet/pkTime", query: this.$route.query});
+        }
+      },
+      prev(){
+        if(this.active >1 && this.active < 5){
+          this.active --;
+          this.activeName = this.stepUrls[this.active-1];
+          this.handleClick();
+        }
+      },
+    }
+  }
+</script>
+<style type="text/css" scoped>
+  .tabs{
+    width:100%;
+    margin-bottom: 20px;
+  }
+  .nextStep{
+    width:100%;
+    text-align: center;
+    padding:10px 0;
+  }
+
+</style>

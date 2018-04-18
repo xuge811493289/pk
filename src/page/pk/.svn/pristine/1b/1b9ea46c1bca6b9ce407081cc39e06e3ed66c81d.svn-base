@@ -1,0 +1,364 @@
+<!--排课时间-->
+<template>
+  <div class="sy-pk-step-container sy-theme-tableBorder">
+    <sy-grad-4 :border="false">
+      <div slot="bodyRight" id="courseMutex">
+        <!-- 课程互斥 -->
+        <div class="options">
+          <el-button @click='toAddCourseMutex'>新增</el-button>
+        </div>
+        <div class="tblData">
+          <el-table :data="selectMutedInfo" style="width: 100%" border> 
+            <el-table-column prop="gradeName" label="年级" align="center"></el-table-column>
+            <el-table-column prop="courseName" label="相关课程" align="center"></el-table-column>
+            <el-table-column  label="编辑" align="center">、
+              <template scope='scope'>
+                <el-button type="text" @click='toUpdCourseMutex(scope.$index,scope.row)'>编辑</el-button>
+              </template>
+            </el-table-column>
+            <el-table-column  label="删除" align="center">
+              <template scope="scope">
+                <el-button type="text" @click='delCourseMutex(scope.$index,scope.row)'>删除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+      </div>
+    </sy-grad-4>
+    
+     <!-- 新增课堂互斥 -->
+    <sy-dialog title="新增" :visible.sync="dialogAddCourseMutexVisible" :close-on-click-modal="false" position="middle" height="auto" width="30%" slide="fade">
+      <div slot="body" style="height: auto;padding:2em">
+        <div class="mutexHeader">
+          <el-form>
+            <el-form-item label="temp">
+              <span slot="label">年   级：</span>
+              <el-input v-model="addCourseMutex.gradeValue" class="selectBtn-in-dialog" style="width:200px;" @focus="addCourseMutexGrade" placeholder='请选择年级'></el-input>
+            </el-form-item> 
+          </el-form>
+        </div>
+        <div class="mutexContent">
+          <div class="mutexSearch">
+            选择课程
+          </div>
+          <div class="mutexTable">
+          <!-- @keyup.enter.native="handleSearchelectiveClass" :on-icon-click="handleSearchelectiveClass" -->
+            <el-input placeholder="请输入课程搜索" icon="search" v-model="addCourseMutex.keyword" > </el-input>
+            <el-table ref="multipleTable"border :data="addCourseMutex.courses" tooltip-effect="dark" style=" margin:1em auto"@selection-change="handleSelectionChange"> 
+              <el-table-column type="selection" width="55"> </el-table-column>
+              <el-table-column prop="courseName" label="课程"> </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer text-center">
+        <el-button type="primary" @click="toSureAddCourseMutex">确定</el-button>
+        <el-button @click="dialogAddCourseMutexVisible = false">取消</el-button>
+      </span>
+    </sy-dialog>
+    <!-- 选择年级弹框 -->
+    <sy-dialog title="选择年级" :visible.sync="dialogaddClassesVisible" :close-on-click-modal="false" position="middle" height="auto" width="600px" slide="fade">
+      <div slot="body">
+        <div class="sy-pk-dialog-margin">
+          <el-radio-group v-model="addCourseMutex.gradeId" @change="SelectGradeRadio">
+            <el-radio v-for="grade in addCourseMutex.grades" :label="grade.gradeId" :key="grade">{{grade.gradeName}}</el-radio>
+          </el-radio-group>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <div align="center">
+          <el-button @click="dialogaddClassesVisible = false">取 消</el-button>
+          <el-button type="primary" @click="toSureClassIds">确 定</el-button>          
+        </div>
+      </span>
+    </sy-dialog>
+    <!-- 修改弹框 -->
+    <sy-dialog title="修改" :visible.sync="dialogEditCourseMutexVisible" :close-on-click-modal="false" position="middle" height="auto" width="30%" slide="fade">
+      <div slot="body" style="height: auto;padding:2em">
+        <div class="mutexHeader">
+          <el-form>
+            <el-form-item label="temp">
+              <span slot="label">年   级：</span>
+              <el-input v-model="editCourseMutex.gradeValue" disabled class="selectBtn-in-dialog" style="width:200px;" placeholder='请选择年级'></el-input>
+            </el-form-item> 
+          </el-form>
+        </div>
+        <div class="mutexContent">
+          <div class="mutexSearch">
+            选择课程
+          </div>
+          <div class="mutexTable">
+            <el-table ref="multipleTable"border :data="editCourseMutex.courses" tooltip-effect="dark" style=" margin:1em auto" @selection-change="edit_handleSelectionChange"> 
+              <el-table-column type="selection" width="55"> </el-table-column>
+              <el-table-column prop="courseName" label="课程"> </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer text-center">
+        <el-button type="primary" @click="toSureEditCourseMutex">确定</el-button>
+        <el-button @click="dialogEditCourseMutexVisible = false">取消</el-button>
+      </span>
+    </sy-dialog>
+  </div>
+</template>
+<script>
+  import {selectCourseMutedBySolution,saveMutexInfo,getRelatedGradeAndCourse,deleteCourseMuted,selectCourseMutedById,updateMutexInfo} from './request';
+  export default{
+    data(){
+      return {
+        dialogAddCourseMutexVisible:false,
+        dialogaddClassesVisible:false,
+        dialogEditCourseMutexVisible:false,
+        selectMutedInfo:[],
+        addCourseMutex:{
+          grades:[],
+          gradeValue:'',  
+          gradeId:'',     
+          keyword:'',     
+          courses:[],     
+          courseIds:[],   
+        },
+        editCourseMutex:{
+          gradeValue:'',      
+          keyword:'',     
+          courses:[],     
+          courseIds:[],
+        },
+        mutexId:'',
+      }
+    },
+    created(){
+      this._init();
+      this._getSession()
+      this.selectCourseMuted();
+      // 获取年级课程数据
+      this.toGetGradeCourseData()
+    },
+    methods:{
+      _init() {
+        let userMsg = this.$getSess('user');
+        if (userMsg && userMsg.data ) {
+          if (userMsg.data.unitId) {
+            this.unitId = userMsg.data.unitId;
+          }
+        }
+      },
+      _getSession() {
+        let solution = this.$getSess('solutionId');
+        if(solution){
+          this.solutionId = solution;
+        }
+      },
+      toGetGradeCourseData(){
+        getRelatedGradeAndCourse({solutionId:this.solutionId}).then((results)=>{
+          if(results && results.code =='ok'){
+            this.addCourseMutex.grades = results.data;
+          }
+        })
+      },
+      // 课程互斥规则查询
+      selectCourseMuted(){
+        selectCourseMutedBySolution({solutionId:this.solutionId}).then((results)=>{
+          if(results && results.code =='ok' && results.data !=[]){
+            this.selectMutedInfo = []
+            results.data.forEach((item,index)=>{
+              let arr = []
+              item.mutexCourseVMS.forEach((item)=>{
+                arr.push(item.name);
+              })
+              this.selectMutedInfo.push({
+                id:item.id,
+                gradeId:item.gradeId,
+                gradeName:item.gradeName,
+                courseids:item.mutexCourseVMS,
+                courseName:arr +''
+              })
+            })
+          }
+        })
+      },
+      //打开添加页面
+      toAddCourseMutex(){
+        this.dialogAddCourseMutexVisible= true;
+      },
+      // 新增课程
+      addCourseMutexGrade(){
+        this.dialogaddClassesVisible = true;
+      },
+      // 年级单选
+      SelectGradeRadio(value){
+        // 年级id
+        this.addCourseMutex.gradeId = '';
+        this.addCourseMutex.gradeId = value;
+        let arr = [];
+        this.addCourseMutex.grades.forEach((item,index)=>{
+          // 获取年级下面的课程
+          if(item.gradeId == value){
+            this.addCourseMutex.gradeValue = item.gradeName;
+            arr = item.pkCourseVMS;
+          }
+        })
+        this.addCourseMutex.courses = arr;
+      },
+      // 选择单个年级
+      handleSelectionChange(val) {
+        let arr = [];
+        val.forEach((item)=>{
+          arr.push(item.courseId);
+        })
+        this.addCourseMutex.courseIds = arr;
+      },
+      // 选择年级确定
+      toSureClassIds(){
+        this.dialogaddClassesVisible = false;
+      },
+      // 新增互斥课的确定
+      toSureAddCourseMutex(){
+        // 获取参数进行保存
+        let params = {};
+        params = {
+          solutionId:this.solutionId,
+          gradeId:this.addCourseMutex.gradeId,
+          courseIds:this.addCourseMutex.courseIds
+        }
+        saveMutexInfo(params).then((results)=>{
+          if(results && results.code =='ok'){
+            this.$message({
+              type: 'success',
+              message: '保存成功!'
+            });
+            this.selectCourseMuted();
+          }          
+        })
+        this.dialogAddCourseMutexVisible= false;
+      },
+      //点击编辑
+      toUpdCourseMutex(index,row){
+        this.dialogEditCourseMutexVisible= true;
+        // 根据row.id查询该课程下面的数据
+        this.mutexId = '';
+        this.mutexId = row.id;
+        this.editCourseMutex.gradeId = row.gradeId
+        // 获取当前年级下的课程
+        let arr = [];
+        this.addCourseMutex.grades.forEach((item,index)=>{
+          // 获取年级下面的课程
+          if(item.gradeId == row.gradeId){
+            arr = item.pkCourseVMS;
+          }
+        })
+        this.editCourseMutex.courses = arr;
+        this.editCourseMutex.gradeValue = row.gradeName;
+      },
+      // 选中后触发修改
+      edit_handleSelectionChange(val){
+        let courseIds = [];
+        val.forEach((item)=>{
+          courseIds.push(item.courseId)
+        })
+        this.editCourseMutex.courseIds = courseIds;
+      },
+      // 点击确定修改
+      toSureEditCourseMutex(){
+        // 获取参数进行保存
+        let params = {};
+        params = {
+          id:this.mutexId,
+          gradeId:this.editCourseMutex.gradeId,
+          courseIds:this.editCourseMutex.courseIds
+        }
+        updateMutexInfo(params).then((results)=>{
+          if(results && results.code =='ok'){
+            this.$message({
+              type: 'success', 
+              message: '修改成功!'
+            });
+            this.selectCourseMuted();
+          }else{
+            this.$message({
+              type: 'error',
+              message: "修改失败，请重新选择"
+            });
+          }
+        })
+        this.dialogEditCourseMutexVisible= false;
+      },
+      delCourseMutex(index,row){
+        this.$confirm('此操作将永久删除此数据, 是否继续?', '提示', {
+          confirmButtonText: '确定', 
+          cancelButtonText: '取消', 
+          type: 'warning'
+        }).then(() => {
+          deleteCourseMuted({id:row.id}).then((results)=>{
+            if(results && results.code =='ok'){
+              this.$message({
+                type: 'success', 
+                message: '删除成功!'
+              });
+              this.selectCourseMuted();
+            }else{
+              this.$message({
+                type: 'error',
+                message: results.message
+              });
+            }
+          })          
+        }).catch((error) => {
+          this.$message({
+            type: 'info', 
+            message: '已取消删除'
+          });
+        });
+      },
+    }
+  }
+</script>
+<style scoped>
+  .app-container-box {
+    top:185px;
+    bottom:50px;
+    overflow-y: scroll;
+  }
+
+  #courseMutex .options{
+    text-align: right;
+    line-height: 46px;
+    height: 46px;
+    padding: 0 14px;
+  }
+  #courseMutex .tblData{
+    padding: 0 14px;
+    position: absolute;
+    top: 46px;
+    bottom: 0;
+    width: 100%;
+  }
+  #courseMutex i {
+    cursor: pointer;
+    margin: 0 5px;
+  }
+  .gradeChecks {
+    height: 2em;
+    border: 1px solid #ccc;
+    line-height: 2em;
+    margin: 0 0 1em 0;
+  }
+  .mutexContent{
+    border:1px solid RGB(51,153,204);
+  }
+  .mutexSearch{
+    text-align: center;
+    height: 40px;
+    line-height: 40px;
+    color:RGB(51,153,204);
+    border:1px solid RGB(51,153,204);
+  }
+  .mutexTable{
+    border:1px solid RGB(51,153,204);
+    padding:5px;
+  }
+  .sy-pk-dialog-margin{
+    margin:20px 0 20px 20px;
+  }  
+</style>

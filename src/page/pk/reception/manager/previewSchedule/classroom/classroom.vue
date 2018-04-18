@@ -1,0 +1,173 @@
+<template>
+  <div class="sy-pk-step-container sy-theme-tableBorder" style="height: auto;min-height: 440px;"
+    v-loading="pageLoading" element-loading-text="拼命加载中...">
+    <div style="padding: 10px;">
+      <el-select v-model="parmas.placeTypeId" placeholder="请选择场地类型" size="small" style="width:130px;margin-right: 10px;" @change="handlePlaceTypeChange">
+        <el-option label="全部场地类型" value=""></el-option>
+        <el-option v-for="item in placeTypeOptions" :key="item.value" :label="item.label" :value="item.value"></el-option>
+      </el-select>
+      <el-select v-model="parmas.roomIds" placeholder="请选择场地" size="small" style="width:130px" @change="handleClazzChange">
+        <el-option label="全部场地" value=""></el-option>
+        <el-option v-for="items in placeOptions" :key="items.value" :label="items.label" :value="items.value"></el-option>
+      </el-select>
+    </div>
+    <div style="padding: 0 10px 10px;">
+      <div v-if="tableData.length == 0" class="center" style="line-height: 400px;">暂无数据</div>
+      <div v-for="(item,index) in tableData" :key="index" style="margin-bottom: 10px;">
+        <el-table  :data="item.data" border style="width: 100%;">
+          <el-table-column v-for="col in item.columes" :key="col.id" :prop="col.id" :label="col.name" align="center"></el-table-column>
+        </el-table>
+      </div>
+    </div>
+  </div>
+</template>
+<script>
+import { getPlaceSheetsById, getBb, getFestival,getPlaceTypes,getPlaceByTypeId } from "../../request.js";
+export default {
+  data(){
+    return{
+      parmas: {
+        placeTypeId: '',
+        roomIds: ''
+      },
+      pageLoading: false,
+      placeTypeOptions: [], // 场地类型列表
+      placeOptions: [], // 场地列表
+      weekList: [], // 星期列表
+      jieciList: [], // 节次列表
+      tableData: []
+    }
+  },  
+  created(){
+    this.init();
+  },
+  methods:{
+    init(){
+      // 星期
+      this.weekList = [];
+      this.jieciList = [];
+      getBb('XQ').then(res=>{
+        if(res.code == 'ok'){
+          this.weekList = res.data;
+          getFestival({unitId: this.$store.state.unitId}).then(data=>{
+            if(data.code == 'ok'){
+              this.jieciList = data.data;
+            }
+            this.getList();
+          })
+        }
+      })
+      this.getPlaceType();
+    },
+    // 查询场地类型
+    getPlaceType(){
+      this.placeTypeOptions = [];
+      getPlaceTypes(this.$store.state.unitId).then(res=>{
+        let arr = [];
+        res.forEach(_d => {
+          arr.push({
+            value: _d.id,
+            label: _d.name
+          })
+        });
+        this.placeTypeOptions = arr;
+      }).catch(err=>{
+
+      })
+    },
+    handlePlaceTypeChange(val){
+      this.parmas.roomIds = '';
+      this.placeOptions = [];
+      if(!val){
+        this.getList();
+      }else{
+        this.getPlace();
+      }
+      
+    },
+    // 查询场地
+    getPlace(){
+      this.placeOptions = [];
+      getPlaceByTypeId(this.parmas.placeTypeId).then(res=>{
+        let arr = [];
+        res.forEach(_d => {
+          arr.push({
+            value: _d.id,
+            label: _d.name
+          })
+        });
+        this.placeOptions = arr;
+        this.getList();
+      }).catch(err=>{
+
+      })
+    },
+    handleClazzChange(){
+      this.getList();
+    },
+    // 查询课表
+    getList(){
+      this.pageLoading = true;
+      let ids = this.$_.map(this.placeOptions, 'value').join(',');
+      if(this.parmas.placeTypeId){
+        if(this.parmas.roomIds){
+          ids = this.parmas.roomIds
+        }else{
+          if(!ids){
+            ids = '$*132465798';
+          }
+        }
+      }
+      getPlaceSheetsById({
+        unitId: this.$store.state.unitId,
+        year: this.$route.query.year,
+        term: this.$route.query.term,
+        solutionId: this.$route.query.id,
+        roomIds: ids
+      }).then(res=>{
+        let datas = [];
+        res.forEach((_r,r)=>{
+          let obj = {
+            columes: [],
+            data: []
+          };
+          let _arr = [{id: 'name', name: _r.palceName}]
+          let _datas = [];
+          this.weekList.forEach((_w,w)=>{
+            _arr.push({id: _w.id, name: _w.name})
+          })
+          this.jieciList.forEach((_j,j)=>{
+            let _jc = this.$_.filter(_r.courseSheets, {festivalId: _j.id})
+            let _dataObj = {
+              name: _j.name
+            };
+            let uniqWeekId = this.$_.uniq(this.$_.map(_jc, 'weekId'));
+            uniqWeekId.forEach((_u,u)=>{
+              let _strs = [];
+              this.$_.filter(_jc, o=>{return o.weekId == _u}).forEach((_q,q)=>{
+                _strs.push(_q.courseShortName + (_q.teacherNames ? ' （' + _q.teacherNames + '）' : ''))
+              })
+              _dataObj[_u] = _strs.join('、')
+            })
+            _datas.push(_dataObj);
+          })
+          obj.columes = _arr;
+
+          obj.data = _datas;
+          
+          datas.push(obj);
+        })
+        this.tableData = datas;
+        this.pageLoading = false;
+      }).catch(err=>{
+        this.pageLoading = false;
+      })
+    }
+  }
+}
+</script>
+
+<style scoped>
+
+</style>
+
